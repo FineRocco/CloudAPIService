@@ -1,4 +1,4 @@
-# CloudAPIService
+# Cloud API Service
 
 The goal of the project is to develop a cloud native application that offers a set of services that provide
 relevant information extracted from a dataset, or multiple datasets, as a set of business capabilities and use
