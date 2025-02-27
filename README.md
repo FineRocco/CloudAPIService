@@ -12,3 +12,9 @@ preferably use gRPC. Any other contribution in the context of cloud computing wi
 areas of contribution are microservice patterns, serverless, devops, security and data science. The resulting
 application is to be deployed in a cloud environment and make use of cloud services. Automation should be
 emphasized as much as possible for building, deploying and running the application.
+
+# Team
+
+        Denis Ungureanu fc56307
+        Leonardo Monteiro fc58250
+        Gustavo Henriques fc64361
