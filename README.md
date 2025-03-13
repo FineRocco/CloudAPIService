@@ -18,3 +18,4 @@ emphasized as much as possible for building, deploying and running the applicati
         Denis Ungureanu fc56307
         Leonardo Monteiro fc58250
         Gustavo Henriques fc64361
+        Frederico Prazeres fc56269
