@@ -1,0 +1,55 @@
+version: '3.3'
+
+services:
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: mydatabase
+    volumes:
+      - ./datasets:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+
+  api-interface:
+    image: api-interface  # Name of the image for the Api-interface microservice
+    networks:
+      - microservices  # Connect to the microservices network
+    ports:
+      - "8080:5000"  # Expose port for the Api-interface microservice
+    environment:
+      JOBPOSTINSHOST: job-postings  # Set the environment variable for the JobPostings service hostname
+      JOBREVIEWSHOST: job-reviews   # Set the environment variable for the JobReviews service hostname
+
+  job-postings:
+    image: job-postings  # Name of the image for the job-postings microservice
+    networks:
+      - microservices  # Connect to the microservices network
+    ports:
+      - "8081:5000"  # Expose port for the job-postings microservice
+    environment:
+      DATAACCESSHOST: data-access  # Set the environment variable for the Data Access service hostname
+
+  job-reviews:
+    image: job-reviews  # Name of the image for the job-reviews microservice
+    networks:
+      - microservices  # Connect to the microservices network
+    ports:
+      - "8082:5000"  # Expose port for the job-reviews microservice
+    environment:
+      DATAACCESSHOST: data-access  # Set the environment variable for the Data Access service hostname
+
+  data-access:
+    image: data-access  # Name of the image for the data-access microservice
+    networks:
+      - microservices  # Connect to the microservices network
+    ports:
+      - "8083:5000"  # Expose port for the data-access microservice
+
+networks:
+  microservices:  # Define the network
+    driver: bridge  # Use the bridge driver for network communication
+
