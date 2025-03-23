@@ -1,6 +1,5 @@
-version: '3.3'
-
 services:
+
   db:
     image: postgres:15
     container_name: postgres_db
@@ -14,42 +13,35 @@ services:
     ports:
       - "5432:5432"
 
-  api-interface:
-    image: api-interface  # Name of the image for the Api-interface microservice
+  data-access:
+    build: ./microservices/data-access  # Build from Dockerfile
+    container_name: data_access_service
+    restart: always
+    volumes:
+      - ./datasets:/docker-entrypoint-initdb.d  # Mount init.db
     networks:
-      - microservices  # Connect to the microservices network
+      - microservices
     ports:
-      - "8080:5000"  # Expose port for the Api-interface microservice
+      - "8083:50051"
+
+  api-interface:
+    build: ./microservices/api-interface
+    networks:
+      - microservices
+    ports:
+      - "8082:8082"
     environment:
-      JOBPOSTINSHOST: job-postings  # Set the environment variable for the JobPostings service hostname
-      JOBREVIEWSHOST: job-reviews   # Set the environment variable for the JobReviews service hostname
+      JOBPOSTINSHOST: job-postings
 
   job-postings:
-    image: job-postings  # Name of the image for the job-postings microservice
+    build: ./microservices/job-postings
     networks:
-      - microservices  # Connect to the microservices network
+      - microservices
     ports:
-      - "8081:5000"  # Expose port for the job-postings microservice
+      - "8081:50051"
     environment:
-      DATAACCESSHOST: data-access  # Set the environment variable for the Data Access service hostname
-
-  job-reviews:
-    image: job-reviews  # Name of the image for the job-reviews microservice
-    networks:
-      - microservices  # Connect to the microservices network
-    ports:
-      - "8082:5000"  # Expose port for the job-reviews microservice
-    environment:
-      DATAACCESSHOST: data-access  # Set the environment variable for the Data Access service hostname
-
-  data-access:
-    image: data-access  # Name of the image for the data-access microservice
-    networks:
-      - microservices  # Connect to the microservices network
-    ports:
-      - "8083:5000"  # Expose port for the data-access microservice
+      DATA_ACCESS_HOST: data-access
 
 networks:
-  microservices:  # Define the network
-    driver: bridge  # Use the bridge driver for network communication
-
+  microservices:
+    driver: bridge
