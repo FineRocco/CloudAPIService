@@ -16,7 +16,6 @@ services:
   data-access:
     build: ./microservices/data-access  # Build from Dockerfile
     container_name: data_access_service
-    restart: always
     volumes:
       - ./datasets:/docker-entrypoint-initdb.d  # Mount init.db
     networks:

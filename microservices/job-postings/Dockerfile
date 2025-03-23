@@ -1,13 +1,12 @@
-FROM python:3.11
+FROM python:3.13
 
 WORKDIR /app
 
 COPY requirements.txt .
-RUN PIP install psycopg2
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-EXPOSE 50051
+EXPOSE 8081
 
 CMD ["python", "job-postings.py"]
