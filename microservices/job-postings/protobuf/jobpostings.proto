@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package jobpostings;
+
+// Represents a job posting.
+message Job {
+  string id = 1;
+  string title = 2;
+  string company_name = 3;
+  string description = 4;
+  string location = 5;
+  int32 views = 6; // Defaults to 0 if not provided.
+}
+
+// -----------------------------
+// Average Salary Messages
+// -----------------------------
+message AverageSalaryRequest {
+  string title = 1;
+}
+
+message AverageSalaryResponse {
+  int32 averageSalary = 1;
+}
+
+
+// -----------------------------
+// Job Posting Messages
+// -----------------------------
+
+// Request to post a new job.
+message PostJobRequest {
+  Job job = 1;
+}
+
+// Response after posting a job.
+message PostJobResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// -----------------------------
+// Service Definition
+// -----------------------------
+
+// Service handling job posting functionalities.
+service JobPostingService {
+  rpc AverageSalary(AverageSalaryRequest) returns (AverageSalaryResponse);
+  rpc PostJob(PostJobRequest) returns (PostJobResponse);
+}

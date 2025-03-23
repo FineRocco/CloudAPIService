@@ -1,0 +1,7 @@
+# PostgreSQL database connectivity
+psycopg2-binary==2.9.6
+
+# gRPC and Protobuf libraries
+grpc-interceptor ~= 0.11.0
+grpcio-tools ~= 1.30
+protobuf==4.23.3

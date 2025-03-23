@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package dataaccess;
+
+// Message representing a job record.
+message Job {
+  int64 job_id = 1;
+  string company = 2;
+  string title = 3;
+  string description = 4;
+  double max_salary = 5;         // Using double for NUMERIC fields.
+  string pay_period = 6;
+  string location = 7;
+  float company_id = 8;          // Matches the table's FLOAT type.
+  float views = 9;
+  double med_salary = 10;
+  double min_salary = 11;
+  string formatted_work_type = 12;
+  bool remote_allowed = 13;
+  string job_posting_url = 14;
+  string aplication_url = 15;
+  string application_type = 16;
+  string formatted_Experience_level = 17;
+  string skills_desc = 18;
+  string posting_domain = 19;
+  bool sponsored = 20;
+  string work_type = 21;
+  string currency = 22;
+  double normalized_salary = 23;
+  float zip_code = 24;           // Although zip codes are usually strings, this matches your table.
+}
+
+// Message representing a review record.
+message Review {
+  int32 id = 1;
+  string firm = 2;
+  string job_title = 3;
+  string current = 4;
+  string location = 5;
+  int32 overall_rating = 6;
+  float work_life_balance = 7;
+  float culture_values = 8;
+  float diversity_inclusion = 9;
+  float career_opp = 10;
+  float comp_benefits = 11;
+  float senior_mgmt = 12;
+  string recommend = 13;
+  string ceo_approv = 14;
+  string outlook = 15;
+  string headline = 16;
+  string pros = 17;
+  string cons = 18;
+}
+
+// An empty request message for methods that don't require parameters.
+message EmptyRequest {}
+
+message AverageSalaryRequest {
+  string title = 1;
+}
+
+message AverageSalaryResponse {
+  int32 salary = 1;
+}
+
+// Response message for GetJobs RPC.
+message GetJobsResponse {
+  repeated Job jobs = 1;
+}
+
+// Response message for GetReviews RPC.
+message GetReviewsResponse {
+  repeated Review reviews = 1;
+}
+
+// Service definition exposing the data access methods.
+service DataAccessService {
+  // Returns all jobs.
+  rpc GetJobs (EmptyRequest) returns (GetJobsResponse);
+
+  // Returns all reviews.
+  rpc GetReviews (EmptyRequest) returns (GetReviewsResponse);
+  rpc GetAverageSalary (AverageSalaryRequest) returns (AverageSalaryResponse);
+}
