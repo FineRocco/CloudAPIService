@@ -11,8 +11,7 @@ from jobpostings_pb2 import (
     AverageSalaryResponse
 )
 
-data_access_host = os.getenv("DATAACCESSHOST", "localhost")
-getbook_host = os.getenv("GETBOOK_HOST", "localhost")
+data_access_host = os.getenv("DATAACCESSHOST", "data-access")
 """ with open("client.key", "rb") as fp:
     client_key = fp.read()
 with open("client.pem", "rb") as fp:
@@ -25,9 +24,13 @@ averageSalary_client = DataAccessServiceStub(job_postings_channel)
 
 class AverageSalaryService(jobpostings_pb2_grpc.JobPostingServiceServicer):
     def AverageSalary(self, request, context):
-        averageSalary_request = AverageSalaryRequest(request.title)
+
+        averageSalary_request = AverageSalaryRequest(title=request.title)
+
         averageSalary_response = averageSalary_client.GetAverageSalary(averageSalary_request)
+
         return AverageSalaryResponse(averageSalary=averageSalary_response.salary)
+
 
 def serve():
     interceptors = [ExceptionToStatusInterceptor()]

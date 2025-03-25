@@ -4,7 +4,6 @@ import psycopg2.extras
 
 import random, os
 from concurrent import futures
-
 import grpc
 import data_access_pb2_grpc
 from grpc_interceptor import ExceptionToStatusInterceptor
@@ -75,8 +74,9 @@ class DataAccess:
 class GetAverageSalary(data_access_pb2_grpc.DataAccessServiceServicer):
     def GetAverageSalary(self, request, context):
         da = DataAccess()
+            
         jobs = da.fetch_jobs_by_title(request.title)
-        
+            
         if jobs:
             avg_salary = sum(job["med_salary"] for job in jobs if job["med_salary"] is not None) / len(jobs)
         else:

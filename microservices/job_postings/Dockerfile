@@ -1,14 +1,18 @@
 FROM python:3.13
 
+WORKDIR /app
+
+COPY job_postings/requirements.txt /app/job_postings/
+COPY job_postings/job_postings.py /app/job_postings/
+COPY job_postings/protobuf /app/protobuf
+COPY data_access/protobuf /app/protobuf
+
 WORKDIR /app/job_postings
-
-COPY job_postings/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
-COPY job_postings/ .
-
-COPY data_access/data_access_pb2.py .
-COPY data_access/data_access_pb2_grpc.py .
+RUN python -m grpc_tools.protoc -I ../protobuf --python_out=. \
+           --grpc_python_out=. ../protobuf/jobpostings.proto
+RUN python -m grpc_tools.protoc -I ../protobuf --python_out=. \
+           --grpc_python_out=. ../protobuf/data-access.proto
 
 EXPOSE 8081
 

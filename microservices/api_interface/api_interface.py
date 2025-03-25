@@ -7,8 +7,7 @@ from jobpostings_pb2_grpc import JobPostingServiceStub
 
 app = Flask(__name__)
 
-jobpostings_host = os.getenv("JOBPOSTINSHOST", "localhost")
-getbook_host = os.getenv("GETBOOK_HOST", "localhost")
+jobpostings_host = os.getenv("JOBPOSTINSHOST", "job-postings")
 """ with open("client.key", "rb") as fp:
     client_key = fp.read()
 with open("client.pem", "rb") as fp:
@@ -21,10 +20,17 @@ job_postings_client = JobPostingServiceStub(jobpostings_channel)
 
 @app.route("/")
 def render_homepage():
+
+
     averageSalary_request = AverageSalaryRequest(
         title="Marketing Coordinator"
     )
+
     averageSalary_response = job_postings_client.AverageSalary(
         averageSalary_request
     )
-    return print(averageSalary_response.averageSalary)
+    
+    return render_template(
+        "homepage.html",
+        averageSalary_response=averageSalary_response.averageSalary
+    )
