@@ -27,7 +27,4 @@ def render_homepage():
     averageSalary_response = job_postings_client.AverageSalary(
         averageSalary_request
     )
-    return render_template(
-        "homepage.html",
-        recommendations=recommendations_response.recommendations,
-    )
+    return print(averageSalary_response.averageSalary)
