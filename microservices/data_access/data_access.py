@@ -12,10 +12,18 @@ from data_access_pb2 import (
     AverageSalaryResponse
 )
 
+DB_CONFIG = {
+    "dbname": "mydatabase",
+    "user": "myuser",
+    "password": "mypassword",
+    "host": "postgres_db",  # Docker service name
+    "port": "5432"
+}
+
 class DataAccess:
     def __init__(self, host=None, port=None, database=None, user=None, password=None):
         self.conn_params = {
-            "host": host or os.getenv("DB_HOST", "db"),
+            "host": host or os.getenv("DB_HOST", "postgres_db"),
             "port": port or int(os.getenv("DB_PORT", "5432")),
             "database": database or os.getenv("DB_NAME", "mydatabase"),
             "user": user or os.getenv("DB_USER", "myuser"),
@@ -73,16 +81,17 @@ class DataAccess:
             
 class GetAverageSalary(data_access_pb2_grpc.DataAccessServiceServicer):
     def GetAverageSalary(self, request, context):
-        da = DataAccess()
-            
-        jobs = da.fetch_jobs_by_title(request.title)
-            
-        if jobs:
-            avg_salary = sum(job["med_salary"] for job in jobs if job["med_salary"] is not None) / len(jobs)
-        else:
-            avg_salary = 0
-            
-        return AverageSalaryResponse(averageSalary=avg_salary)
+        try:
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor()
+            cursor.execute("SELECT AVG(normalized_salary) FROM jobs WHERE normalized_salary IS NOT NULL;")
+            avg_salary = cursor.fetchone()[0] or 0.0  # Default to 0 if None
+            cursor.close()
+            conn.close()
+            return AverageSalaryResponse(averageSalary=avg_salary)
+        except Exception as e:
+            print("Database error:", e)
+            return AverageSalaryResponse(averageSalary=0.0)
         
 def serve():
     interceptors = [ExceptionToStatusInterceptor()]
