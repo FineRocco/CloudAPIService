@@ -20,7 +20,7 @@ message AverageSalaryRequest {
 }
 
 message AverageSalaryResponse {
-  int32 averageSalary = 1;
+  float averageSalary = 1;
 }
 
 

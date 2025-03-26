@@ -1,5 +1,4 @@
 services:
-
   db:
     image: postgres:15
     container_name: postgres_db
@@ -12,18 +11,23 @@ services:
       - ./datasets:/docker-entrypoint-initdb.d
     ports:
       - "5432:5432"
+    networks:
+      - microservices
 
   data-access:
     build:
       context: ./microservices
-      dockerfile: data_access/Dockerfile  # Build from Dockerfile
+      dockerfile: data_access/Dockerfile
     container_name: data_access_service
-    volumes:
-      - ./datasets:/docker-entrypoint-initdb.d  # Mount init.db
     networks:
       - microservices
     ports:
       - "8083:50051"
+    environment:
+      DB_HOST: db          # Use the service name as the hostname
+      DB_USER: myuser
+      DB_PASSWORD: mypassword
+      DB_NAME: mydatabase
 
   api-interface:
     build: 

@@ -29,7 +29,7 @@ class AverageSalaryService(jobpostings_pb2_grpc.JobPostingServiceServicer):
 
         averageSalary_response = averageSalary_client.GetAverageSalary(averageSalary_request)
 
-        return AverageSalaryResponse(averageSalary=averageSalary_response.salary)
+        return AverageSalaryResponse(averageSalary=averageSalary_response.averageSalary)
 
 
 def serve():

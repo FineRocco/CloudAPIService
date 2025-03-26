@@ -60,7 +60,7 @@ message AverageSalaryRequest {
 }
 
 message AverageSalaryResponse {
-  int32 salary = 1;
+  float averageSalary = 1;
 }
 
 // Response message for GetJobs RPC.

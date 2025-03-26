@@ -13,13 +13,13 @@ from data_access_pb2 import (
 )
 
 class DataAccess:
-    def __init__(self, host="localhost", port=5432, database="mydatabase", user="myuser", password="mypassword"):
+    def __init__(self, host=None, port=None, database=None, user=None, password=None):
         self.conn_params = {
-            "host": host,
-            "port": port,
-            "database": database,
-            "user": user,
-            "password": password
+            "host": host or os.getenv("DB_HOST", "db"),
+            "port": port or int(os.getenv("DB_PORT", "5432")),
+            "database": database or os.getenv("DB_NAME", "mydatabase"),
+            "user": user or os.getenv("DB_USER", "myuser"),
+            "password": password or os.getenv("DB_PASSWORD", "mypassword")
         }
     
     def _get_connection(self):
@@ -82,7 +82,7 @@ class GetAverageSalary(data_access_pb2_grpc.DataAccessServiceServicer):
         else:
             avg_salary = 0
             
-        return AverageSalaryResponse(salary=avg_salary)
+        return AverageSalaryResponse(averageSalary=avg_salary)
         
 def serve():
     interceptors = [ExceptionToStatusInterceptor()]
