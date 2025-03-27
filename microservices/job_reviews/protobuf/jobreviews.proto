@@ -30,16 +30,17 @@ message AverageSalaryResponse {
 }
 
 // -----------------------------
-// Jobs with rating Messages
+// Best rating Cities
 // -----------------------------
-message JobsWithRatingRequest {
-  string title = 1;
-  string city = 2;
+
+message BestCityRequest {
+  string location = 1;
 }
 
-message JobsWithRatingResponse {
-  repeated JobWithRating jobs = 1;
+message BestCityResponse {
+  float averageRating = 1;
 }
+
 
 // -----------------------------
 // Service Definition
@@ -48,5 +49,5 @@ message JobsWithRatingResponse {
 // Service handling job posting functionalities.
 service JobReviewService {
   rpc AverageSalary(AverageSalaryRequest) returns (AverageSalaryResponse);
-  rpc JobsWithRating(JobsWithRatingRequest) returns (JobsWithRatingResponse);
+  rpc BestCity(BestCityRequest) returns (BestCityResponse);
 }
