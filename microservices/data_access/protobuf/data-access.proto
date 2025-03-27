@@ -52,9 +52,9 @@ message Review {
   string cons = 18;
 }
 
-// An empty request message for methods that don't require parameters.
-message EmptyRequest {}
-
+// -----------------------------
+// Average Salary Messages
+// -----------------------------
 message AverageSalaryRequest {
   string title = 1;
 }
@@ -63,22 +63,21 @@ message AverageSalaryResponse {
   float averageSalary = 1;
 }
 
-// Response message for GetJobs RPC.
-message GetJobsResponse {
-  repeated Job jobs = 1;
+
+// -----------------------------
+// Jobs with rating Messages
+// -----------------------------
+message JobsWithRatingRequest {
+  string title = 1;
+  string city = 2;
 }
 
-// Response message for GetReviews RPC.
-message GetReviewsResponse {
-  repeated Review reviews = 1;
+message JobsWithRatingResponse {
+  repeated Job jobs = 1;
 }
 
 // Service definition exposing the data access methods.
 service DataAccessService {
-  // Returns all jobs.
-  rpc GetJobs (EmptyRequest) returns (GetJobsResponse);
-
-  // Returns all reviews.
-  rpc GetReviews (EmptyRequest) returns (GetReviewsResponse);
   rpc GetAverageSalary (AverageSalaryRequest) returns (AverageSalaryResponse);
+  rpc GetJobsWihtTitleAndCity (JobsWithRatingRequest) returns (JobsWithRatingResponse);
 }

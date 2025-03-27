@@ -39,6 +39,7 @@ services:
       - "8082:8082"
     environment:
       JOBPOSTINSHOST: job-postings
+      JOBREVIEWSHOST: job-reviews
 
   job-postings:
     build:
@@ -48,6 +49,17 @@ services:
       - microservices
     ports:
       - "8081:50051"
+    environment:
+      DATA_ACCESS_HOST: data-access
+
+  job-reviews:
+    build:
+      context: ./microservices
+      dockerfile: job_reviews/Dockerfile
+    networks:
+      - microservices
+    ports:
+     - "8084:50051"
     environment:
       DATA_ACCESS_HOST: data-access
 
