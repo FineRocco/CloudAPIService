@@ -5,11 +5,10 @@ import grpc
 import jobpostings_pb2_grpc
 from grpc_interceptor import ExceptionToStatusInterceptor
 from grpc_interceptor.exceptions import NotFound
-from data_access_pb2 import AverageSalaryRequest, JobsWithRatingRequest
+from data_access_pb2 import JobPostingsRequestWithTitle
 from data_access_pb2_grpc import DataAccessServiceStub
 from jobpostings_pb2 import (
-    AverageSalaryResponse,
-    JobsWithRatingResponse
+    AverageSalaryResponse
 )
 
 data_access_host = os.getenv("DATAACCESSHOST", "data-access")
@@ -19,21 +18,24 @@ data_access_client = DataAccessServiceStub(job_postings_channel)
 
 class JobPostingService(jobpostings_pb2_grpc.JobPostingServiceServicer):
     def AverageSalary(self, request, context):
+        
+        jobPostingRequest = JobPostingsRequestWithTitle(title=request.title)
 
-        averageSalary_request = AverageSalaryRequest(title=request.title)
+        jobPostingsResponse = data_access_client.GetJobPostings(jobPostingRequest)
 
-        averageSalary_response = data_access_client.GetAverageSalary(averageSalary_request)
+        total = 0
+        count = 0
+        avg = 0.0
 
-        return AverageSalaryResponse(averageSalary=averageSalary_response.averageSalary)
-    
-    def JobsWithRating(self, request, context):
-        
-        jobs_with_rating_request = JobsWithRatingRequest(title=request.title, city=request.city)
-        
-        jobs_with_rating_response = data_access_client.GetJobsWihtTitleAndCity(jobs_with_rating_request)
-        
-        
-        
+        for job in jobPostingsResponse.job:
+            if job.title == request.title:
+                total += job.normalized_salary
+                count += 1
+
+        if count > 0:
+            avg = total / count
+
+        return AverageSalaryResponse(averageSalary=avg)
 
 
 def serve():

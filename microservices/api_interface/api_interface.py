@@ -2,7 +2,7 @@ import os
 
 import grpc
 from flask import Flask, render_template, request
-from jobpostings_pb2 import AverageSalaryRequest, JobsWithRatingRequest
+from jobpostings_pb2 import AverageSalaryRequest
 from jobpostings_pb2_grpc import JobPostingServiceStub
 
 app = Flask(__name__)
@@ -27,20 +27,4 @@ def render_homepage():
     return render_template(
         "homepage.html",
         averageSalary_response=averageSalary_response.averageSalary
-    )
-    
-@app.route("/jobsWithRating")
-def render_jobWithRatingPage():
-    
-    jobs_with_rating_request = JobsWithRatingRequest(
-        title="Marketing Coordinator", city="Chicago"
-    )
-    
-    jobs_with_rating_response = job_postings_client.JobsWithRating(
-        jobs_with_rating_request
-    )
-    
-    return render_template(
-        "jobsWithRating",
-        jobs_with_rating_response=jobs_with_rating_response.jobs
     )
