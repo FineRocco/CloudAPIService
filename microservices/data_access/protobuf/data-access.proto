@@ -20,7 +20,7 @@ message Job {
   string job_posting_url = 14;
   string aplication_url = 15;
   string application_type = 16;
-  string formatted_Experience_level = 17;
+  string formatted_experience_level = 17;
   string skills_desc = 18;
   string posting_domain = 19;
   bool sponsored = 20;
@@ -53,31 +53,27 @@ message Review {
 }
 
 // -----------------------------
-// Average Salary Messages
+// Requests and Responses
 // -----------------------------
-message AverageSalaryRequest {
+message JobPostingsRequestWithTitle {
   string title = 1;
 }
 
-message AverageSalaryResponse {
-  float averageSalary = 1;
+message JobReviewsRequest {
+  int32 limit = 1;
+  int32 offset = 2;
 }
 
-
-// -----------------------------
-// Jobs with rating Messages
-// -----------------------------
-message JobsWithRatingRequest {
-  string title = 1;
-  string city = 2;
+message JobPostingsResponse {
+ repeated Job job = 1;
 }
 
-message JobsWithRatingResponse {
-  repeated Job jobs = 1;
+message JobReviewsResponse {
+ repeated Review review = 1;
 }
 
 // Service definition exposing the data access methods.
 service DataAccessService {
-  rpc GetAverageSalary (AverageSalaryRequest) returns (AverageSalaryResponse);
-  rpc GetJobsWihtTitleAndCity (JobsWithRatingRequest) returns (JobsWithRatingResponse);
+  rpc GetJobPostings (JobPostingsRequestWithTitle) returns (JobPostingsResponse);
+  rpc GetJobReviewsForCompanyReview (JobReviewsRequest) returns (JobReviewsResponse);
 }
