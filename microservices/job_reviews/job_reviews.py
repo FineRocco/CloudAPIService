@@ -38,20 +38,20 @@ class JobReviewService(jobreviews_pb2_grpc.JobReviewServiceServicer):
             offset += limit
 
         if all_reviews:
-            # Criar um dicionário para armazenar a soma das avaliações por cidad
+            # Create a dictionary to store the sum of ratings by city
             city_reviews = {}
 
             for review in all_reviews:
                 city = review.location
 
-                # Inicializa a cidade no dicionário se não existir
+                # Initialize the city in the dictionary if it doesn't exist
                 if city not in city_reviews:
                     city_reviews[city] = {
                         "total_rating": 0,
                         "count": 0
                     }
 
-                # Soma as avaliações para cada cidade
+                # Sum the ratings for each city
                 city_reviews[city]["total_rating"] += (
                     review.overall_rating +
                     review.work_life_balance +
@@ -61,9 +61,9 @@ class JobReviewService(jobreviews_pb2_grpc.JobReviewServiceServicer):
                     review.comp_benefits +
                     review.senior_mgmt
                 )
-                city_reviews[city]["count"] += 7  # Contando todos os atributos das avaliações
+                city_reviews[city]["count"] += 7 
 
-            # Calcular a média para cada cidade
+            # Calculate the average for each city
             cities_with_avg = []
             for city, data in city_reviews.items():
                 average_rating = data["total_rating"] / data["count"] if data["count"] > 0 else 0.0
@@ -73,14 +73,13 @@ class JobReviewService(jobreviews_pb2_grpc.JobReviewServiceServicer):
                 )
                 cities_with_avg.append(bestRatingCity)
 
-            # Ordenar as cidades pela média de avaliações (em ordem decrescente) e pegar as top 10
-            
+            # Sort the cities by average rating (in descending order) and take the top 10
             top_10_cities = sorted(cities_with_avg, key=lambda x: x.average_rating, reverse=True)[:10]
 
-            # Retornar as top 10 cidades
+            
             return BestCityResponse(city=top_10_cities)
         else:
-            # Se não houver reviews, retornar uma lista vazia
+            
             return BestCityResponse(city=[])
 
         
