@@ -59,7 +59,9 @@ message JobPostingsRequestWithTitle {
   string title = 1;
 }
 
-message JobReviewsRequest {
+message JobReviewsRequest{
+  int32 limit = 1;
+  int32 offset = 2;
 }
 
 message JobPostingsResponse {
@@ -73,5 +75,5 @@ message JobReviewsResponse {
 // Service definition exposing the data access methods.
 service DataAccessService {
   rpc GetJobPostings (JobPostingsRequestWithTitle) returns (JobPostingsResponse);
-  rpc GetJobReviews (JobReviewsRequest) returns (JobReviewsResponse);
+  rpc GetJobReviewsForCompanyReview (JobReviewsRequest) returns (JobReviewsResponse);
 }

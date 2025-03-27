@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
-import psycopg2
-import psycopg2.extras
-
-import random, os
+import os
+import random
 from concurrent import futures
 import grpc
+import psycopg2
+import psycopg2.extras
+import logging
+
 import data_access_pb2_grpc
+import data_access_pb2
 from grpc_interceptor import ExceptionToStatusInterceptor
 from grpc_interceptor.exceptions import NotFound
-from data_access_pb2 import (
-    Job, JobPostingsResponse, JobReviewsResponse
-)
+from data_access_pb2 import Job, JobPostingsResponse, JobReviewsResponse
+
+# Set up logging for debugging.
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 DB_CONFIG = {
     "dbname": "mydatabase",
@@ -19,16 +24,19 @@ DB_CONFIG = {
     "host": "postgres_db",  # Docker service name
     "port": "5432"
 }
-            
+
 class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
     def GetJobPostings(self, request, context):
+        logger.debug("GetJobPostings: Received request for title: %s", request.title)
         try:
             conn = psycopg2.connect(**DB_CONFIG)
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)  # Permite acessar colunas pelo nome
+            logger.debug("GetJobPostings: Connected to database")
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             cursor.execute("SELECT * FROM jobs WHERE title = %s", (request.title,))
             rows = cursor.fetchall()
+            logger.debug("GetJobPostings: Fetched %d rows", len(rows))
 
-            # Transformando os resultados em objetos Job
+            # Transform rows into Job objects.
             job_postings = [
                 Job(
                     job_id=row["job_id"],
@@ -58,30 +66,62 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
                 )
                 for row in rows
             ]
-
+            logger.debug("GetJobPostings: Constructed %d job postings", len(job_postings))
             cursor.close()
             conn.close()
 
             return JobPostingsResponse(job=job_postings)
-
         except Exception as e:
-            logger.error(f"Database error: {e}")
+            logger.error("GetJobPostings: Database error: %s", e)
             return JobPostingsResponse(job=[])
 
-
-    def GetJobReviews(self, context):
+    def GetJobReviewsForCompanyReview(self, request, context):
+        logger.debug("GetJobReviewsWithFirm: Received request with limit: %d, offset: %d", request.limit, request.offset)
         try:
             conn = psycopg2.connect(**DB_CONFIG)
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM reviews;")
-            job_reviews = cursor.fetchone()[0] or 0.0  # Default to 0 if None
+            logger.debug("GetJobReviewsWithFirm: Connected to database")
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            cursor.execute(
+                "SELECT * FROM reviews LIMIT %s OFFSET %s", 
+                (request.limit, request.offset)
+            )
+            rows = cursor.fetchall()
+            logger.debug("GetJobReviewsWithFirm: Fetched %d rows", len(rows))
+            
+            reviews = [
+                # Assuming 'Review' is defined in data_access_pb2; adjust import if necessary.
+                # If not, you might need to import it similarly to Job.
+                # For this example, we're assuming the same module defines Review.
+                data_access_pb2.Review(
+                    id=row["id"],
+                    firm=row["firm"],
+                    job_title=row["job_title"],
+                    current=row["current"],
+                    location=row["location"],
+                    overall_rating=row["overall_rating"] if row["overall_rating"] is not None else 0,
+                    work_life_balance=row["work_life_balance"] if row["work_life_balance"] is not None else 0.0,
+                    culture_values=row["culture_values"] if row["culture_values"] is not None else 0.0,
+                    diversity_inclusion=row["diversity_inclusion"] if row["diversity_inclusion"] is not None else 0.0,
+                    career_opp=row["career_opp"] if row["career_opp"] is not None else 0.0,
+                    comp_benefits=row["comp_benefits"] if row["comp_benefits"] is not None else 0.0,
+                    senior_mgmt=row["senior_mgmt"] if row["senior_mgmt"] is not None else 0.0,
+                    recommend=row["recommend"],
+                    ceo_approv=row["ceo_approv"],
+                    outlook=row["outlook"],
+                    headline=row["headline"],
+                    pros=row["pros"],
+                    cons=row["cons"]
+                )
+                for row in rows
+            ]
+            logger.debug("GetJobReviewsWithFirm: Constructed %d reviews", len(reviews))
             cursor.close()
             conn.close()
-            return JobReviewsResponse(review=job_reviews)
+            return JobReviewsResponse(review=reviews)
         except Exception as e:
-            print("Database error:", e)
-            return JobReviewsResponse(review=None)
-        
+            logger.error("GetJobReviewsWithFirm: Database error: %s", e)
+            return JobReviewsResponse(review=[])
+
 def serve():
     interceptors = [ExceptionToStatusInterceptor()]
     server = grpc.server(
@@ -92,9 +132,9 @@ def serve():
     )
 
     server.add_insecure_port("[::]:50051")
+    logger.info("Server starting on [::]:50051")
     server.start()
     server.wait_for_termination()
-
 
 if __name__ == "__main__":
     serve()

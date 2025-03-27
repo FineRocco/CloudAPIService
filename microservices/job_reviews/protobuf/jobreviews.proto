@@ -1,26 +1,25 @@
 syntax = "proto3";
 
-package jobpostings;
+package jobreviews;
 
-// Represents a job posting.
-message Job {
-  string id = 1;
-  string title = 2;
-  string company_name = 3;
-  string description = 4;
-  string location = 5;
-  int32 views = 6; // Defaults to 0 if not provided.
+// Represents a company and its reviews.
+message CompanyReview {
+  string firm = 1;
+  int32 overall_rating = 2;
+  float work_life_balance = 3;
+  float culture_values = 4;
+  float diversity_inclusion = 5;
+  float career_opp = 6; // Defaults to 0 if not provided.
 }
 
 // -----------------------------
-// Average Salary Messages
+// Best Company Messages
 // -----------------------------
-message AverageSalaryRequest {
-  string title = 1;
+message BestCompaniesRequest {
 }
 
-message AverageSalaryResponse {
-  float averageSalary = 1;
+message BestCompaniesResponse {
+  repeated CompanyReview companyReview = 1;
 }
 
 // -----------------------------
@@ -29,5 +28,5 @@ message AverageSalaryResponse {
 
 // Service handling job posting functionalities.
 service JobReviewService {
-  rpc AverageSalary(AverageSalaryRequest) returns (AverageSalaryResponse);
+  rpc GetBestCompanies(BestCompaniesRequest) returns (BestCompaniesResponse);
 }
