@@ -38,7 +38,7 @@ class JobReviewService(jobreviews_pb2_grpc.JobReviewServiceServicer):
             offset += limit
 
         if all_reviews:
-            # Criar um dicionário para armazenar a soma das avaliações por cidade
+            # Criar um dicionário para armazenar a soma das avaliações por cidad
             city_reviews = {}
 
             for review in all_reviews:
