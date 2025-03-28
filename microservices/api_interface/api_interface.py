@@ -24,16 +24,6 @@ jobreviews_channel = grpc.insecure_channel(f"{jobreviews_host}:50051", options=[
 ])
 job_reviews_client = JobReviewServiceStub(jobreviews_channel)
 
-@app.route("/")
-def render_homepage():
-    averageSalary_request = AverageSalaryRequest(title="Marketing Coordinator")
-    averageSalary_response = job_postings_client.AverageSalary(averageSalary_request)
-    
-    return render_template(
-        "homepage.html",
-        averageSalary_response=averageSalary_response.averageSalary
-    )
-
 @app.route("/bestCompanies", methods=["GET"])
 def render_bestCompanies():
     bestCompanies_request = BestCompaniesRequest()
@@ -53,7 +43,7 @@ def render_bestCompanies():
     
     return jsonify({
         "bestCompanies": companies
-    })
+    }),200
 
 @app.route("/jobsForLargestCompanies", methods=["GET"])
 def render_jobsForLargestCompanies():
@@ -74,7 +64,7 @@ def render_jobsForLargestCompanies():
     
     return jsonify({
         "jobs": jobs
-    })
+    }),200
 
 @app.route("/updateReview", methods=["PUT"])
 def update_review():
