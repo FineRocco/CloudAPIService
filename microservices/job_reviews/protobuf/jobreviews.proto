@@ -12,6 +12,28 @@ message JobReview {
   int32 views = 6; // Defaults to 0 if not provided.
 }
 
+// Represents a company and its reviews.
+message CompanyReview {
+  string firm = 1;
+  int32 overall_rating = 2;
+  float work_life_balance = 3;
+  float culture_values = 4;
+  float diversity_inclusion = 5;
+  float career_opp = 6; // Defaults to 0 if not provided.
+}
+
+message UpdateJobReviewRequest {
+  int64 id = 1;
+  string current_status = 2;
+  float rating = 3;
+  string headline = 4;
+}
+
+message UpdateJobReviewResponse {
+  bool success = 1;
+  string message = 2;
+}
+
 // Message representing a review record.
 message ReviewinJob {
   string firm = 2;
@@ -39,14 +61,13 @@ message JobWithRating {
 }
 
 // -----------------------------
-// Average Salary Messages
+// Best Company Messages
 // -----------------------------
-message AverageSalaryRequest {
-  string title = 1;
+message BestCompaniesRequest {
 }
 
-message AverageSalaryResponse {
-  float averageSalary = 1;
+message BestCompaniesResponse {
+  repeated CompanyReview companyReview = 1;
 }
 
 message CalculateRatingRequest {
@@ -72,7 +93,8 @@ message CreateReviewResponse {
 
 // Service handling job posting functionalities.
 service JobReviewService {
-  rpc AverageSalary(AverageSalaryRequest) returns (AverageSalaryResponse);
   rpc CalculateRating(CalculateRatingRequest) returns (CalculateRatingResponse);
   rpc CreateReview(CreateReviewRequest) returns (CreateReviewResponse);
+  rpc GetBestCompanies(BestCompaniesRequest) returns (BestCompaniesResponse);
+  rpc UpdateJobReview(UpdateJobReviewRequest) returns (UpdateJobReviewResponse);
 }

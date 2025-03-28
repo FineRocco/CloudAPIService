@@ -30,6 +30,15 @@ message Job {
   float zip_code = 24;           // Although zip codes are usually strings, this matches your table.
 }
 
+message JobForLargestCompany {
+  string company = 1;
+  string title = 2;
+  string description = 3;
+  string location = 4;
+  float company_id = 5; 
+  double med_salary = 6;
+}
+
 // Message representing a review record.
 message Review {
   string firm = 2;
@@ -51,9 +60,27 @@ message Review {
   string cons = 18;
 }
 
+message Company {
+  int32 company_id = 1;
+  int32 employee_count = 2;
+  int32 follower_count = 3;
+}
+
 // -----------------------------
 // Requests and Responses
 // -----------------------------
+message UpdateJobReviewRequest {
+  int64 id = 1;
+  string current_status = 2;
+  float rating = 3;
+  string headline = 4;
+}
+
+message UpdateJobReviewResponse {
+  bool success = 1;
+  string message = 2;
+}
+
 message JobPostingsRequestWithTitle {
   string title = 1;
 }
@@ -63,7 +90,28 @@ message JobPostingsRequestWithTitleAndCity {
   string city = 2;
 }
 
-message JobReviewsRequest {
+message CompaniesRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+}
+
+message CompaniesResponse {
+  repeated Company company = 1;
+}
+
+message JobPostingsRequest {
+  int32 company_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message JobReviewsRequest{
+  int32 limit = 1;
+  int32 offset = 2;
+}
+
+message JobPostingsForLargestCompaniesResponse{
+  repeated JobForLargestCompany job = 1;
 }
 
 message JobReviewRequestWithTitleAndCity {
@@ -91,7 +139,10 @@ message CreateReviewResponse {
 service DataAccessService {
   rpc GetJobPostingsWithTitle (JobPostingsRequestWithTitle) returns (JobPostingsResponse);
   rpc GetJobPostingsWithTitleAndCity (JobPostingsRequestWithTitleAndCity) returns (JobPostingsResponse);
-  rpc GetJobReviews (JobReviewsRequest) returns (JobReviewsResponse);
   rpc GetJobReviewsWithTitleAndCity (JobReviewRequestWithTitleAndCity) returns (JobReviewsResponse);
   rpc CreateReview (CreateReviewRequest) returns (CreateReviewResponse);
+  rpc GetJobReviewsForCompanyReview (JobReviewsRequest) returns (JobReviewsResponse);
+  rpc GetJobPostingsForLargestCompanies (JobPostingsRequest) returns (JobPostingsForLargestCompaniesResponse);
+  rpc GetCompaniesWithEmployees (CompaniesRequest) returns (CompaniesResponse);
+  rpc UpdateJobReview (UpdateJobReviewRequest) returns (UpdateJobReviewResponse);
 }

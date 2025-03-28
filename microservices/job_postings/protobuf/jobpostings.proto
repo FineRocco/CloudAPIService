@@ -17,6 +17,25 @@ message JobWithRating {
   Job job = 2;
 }
 
+message JobForLargestCompany {
+  string company = 1;
+  string title = 2;
+  string description = 3;
+  string location = 4;
+  float company_id = 5; 
+  double med_salary = 6;
+}
+
+message JobPostingsForLargestCompaniesRequest {
+  int32 company_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message JobPostingsForLargestCompaniesResponse {
+  repeated JobForLargestCompany job = 1;
+}
+
 // -----------------------------
 // Average Salary Messages
 // -----------------------------
@@ -48,4 +67,5 @@ message JobsWithRatingResponse {
 service JobPostingService {
   rpc AverageSalary(AverageSalaryRequest) returns (AverageSalaryResponse);
   rpc JobsWithRating(JobsWithRatingRequest) returns (JobsWithRatingResponse);
+  rpc GetJobPostingsForLargestCompanies (JobPostingsForLargestCompaniesRequest) returns (JobPostingsForLargestCompaniesResponse);
 }
