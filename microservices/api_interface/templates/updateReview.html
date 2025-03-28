@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Update Review Result</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+    }
+    .success {
+      color: green;
+    }
+    .error {
+      color: red;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+    }
+    h1 {
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Update Review Result</h1>
+    {% if update_response.success %}
+      <p class="success">Review updated successfully!</p>
+      <p>{{ update_response.message }}</p>
+    {% else %}
+      <p class="error">Failed to update review.</p>
+      <p>{{ update_response.message }}</p>
+    {% endif %}
+    <p><a href="/">Return to Home</a></p>
+  </div>
+</body>
+</html>

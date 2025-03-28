@@ -12,6 +12,18 @@ message CompanyReview {
   float career_opp = 6; // Defaults to 0 if not provided.
 }
 
+message UpdateJobReviewRequest {
+  int64 id = 1;
+  string current_status = 2;
+  float rating = 3;
+  string headline = 4;
+}
+
+message UpdateJobReviewResponse {
+  bool success = 1;
+  string message = 2;
+}
+
 // -----------------------------
 // Best Company Messages
 // -----------------------------
@@ -29,4 +41,5 @@ message BestCompaniesResponse {
 // Service handling job posting functionalities.
 service JobReviewService {
   rpc GetBestCompanies(BestCompaniesRequest) returns (BestCompaniesResponse);
+  rpc UpdateJobReview(UpdateJobReviewRequest) returns (UpdateJobReviewResponse);
 }

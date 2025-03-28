@@ -6,9 +6,9 @@ import jobreviews_pb2_grpc
 import jobreviews_pb2
 from grpc_interceptor import ExceptionToStatusInterceptor
 from grpc_interceptor.exceptions import NotFound
-from data_access_pb2 import JobReviewsRequest
+from data_access_pb2 import JobReviewsRequest, UpdateJobReviewRequest
 from data_access_pb2_grpc import DataAccessServiceStub
-from jobreviews_pb2 import BestCompaniesResponse
+from jobreviews_pb2 import BestCompaniesResponse, UpdateJobReviewResponse
 import logging
 
 # Set up logging.
@@ -16,7 +16,10 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 data_access_host = os.getenv("DATAACCESSHOST", "data-access")
-job_reviews_channel = grpc.insecure_channel(f"{data_access_host}:50051")
+job_reviews_channel = grpc.insecure_channel(f"{data_access_host}:50051", options=[
+    ('grpc.max_send_message_length', 10 * 1024 * 1024),
+    ('grpc.max_receive_message_length', 10 * 1024 * 1024)
+])
 data_access_client = DataAccessServiceStub(job_reviews_channel)
 
 class JobReviewService(jobreviews_pb2_grpc.JobReviewServiceServicer):
@@ -26,7 +29,7 @@ class JobReviewService(jobreviews_pb2_grpc.JobReviewServiceServicer):
         # Retrieve reviews in batches.
         all_reviews = []
         offset = 0
-        limit = 7000  # Adjust this limit as needed.
+        limit = 42000  # Adjust this limit as needed.
         while True:
             paginatedRequest = JobReviewsRequest(
                 limit=limit,
@@ -151,6 +154,28 @@ class JobReviewService(jobreviews_pb2_grpc.JobReviewServiceServicer):
             return BestCompaniesResponse(companyReview=[debug_company])
 
         return BestCompaniesResponse(companyReview=top_companies)
+
+    def UpdateJobReview(self, request, context):
+        logger.debug(
+            "UpdateJobReview called with id: %s, current_status: %s, rating: %s, headline: %s",
+            request.id, request.current_status, request.rating, request.headline
+        )
+        
+        # Create the update request message from the incoming request.
+        update_req = UpdateJobReviewRequest(
+            id=request.id,
+            current_status=request.current_status,
+            rating=request.rating,
+            headline=request.headline
+        )
+        logger.debug("Sending UpdateJobReviewRequest: %s", update_req)
+        
+        # Delegate the update to the data access client.
+        update_resp = data_access_client.UpdateJobReview(update_req)
+        logger.debug("Received UpdateJobReviewResponse: %s", update_resp)
+        
+        return update_resp
+
 
 def serve():
     interceptors = [ExceptionToStatusInterceptor()]

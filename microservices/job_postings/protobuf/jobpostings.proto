@@ -12,6 +12,25 @@ message Job {
   int32 views = 6; // Defaults to 0 if not provided.
 }
 
+message JobForLargestCompany {
+  string company = 1;
+  string title = 2;
+  string description = 3;
+  string location = 4;
+  float company_id = 5; 
+  double med_salary = 6;
+}
+
+message JobPostingsForLargestCompaniesRequest {
+  int32 company_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message JobPostingsForLargestCompaniesResponse {
+  repeated JobForLargestCompany job = 1;
+}
+
 // -----------------------------
 // Average Salary Messages
 // -----------------------------
@@ -29,4 +48,5 @@ message AverageSalaryResponse {
 // Service handling job posting functionalities.
 service JobPostingService {
   rpc AverageSalary(AverageSalaryRequest) returns (AverageSalaryResponse);
+  rpc GetJobPostingsForLargestCompanies (JobPostingsForLargestCompaniesRequest) returns (JobPostingsForLargestCompaniesResponse);
 }

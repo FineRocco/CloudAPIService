@@ -11,7 +11,7 @@ import data_access_pb2_grpc
 import data_access_pb2
 from grpc_interceptor import ExceptionToStatusInterceptor
 from grpc_interceptor.exceptions import NotFound
-from data_access_pb2 import Job, JobPostingsResponse, JobReviewsResponse
+from data_access_pb2 import Job, JobForLargestCompany, JobPostingsResponse, JobReviewsResponse, CompaniesResponse, UpdateJobReviewResponse, JobPostingsForLargestCompaniesResponse
 
 # Set up logging for debugging.
 logging.basicConfig(level=logging.DEBUG)
@@ -75,52 +75,147 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
             logger.error("GetJobPostings: Database error: %s", e)
             return JobPostingsResponse(job=[])
 
-    def GetJobReviewsForCompanyReview(self, request, context):
-        logger.debug("GetJobReviewsWithFirm: Received request with limit: %d, offset: %d", request.limit, request.offset)
+    def GetJobPostingsForLargestCompanies(self, request, context):
+        logger.debug(
+            "GetJobPostingsForLargestCompanies called with company_id: %s, limit: %s, offset: %s",
+            request.company_id, request.limit, request.offset
+        )
+        try:
+            # Connect to the database.
+            conn = psycopg2.connect(**DB_CONFIG)
+            logger.debug("Connected to database")
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            
+            # Execute the SQL query.
+            query = (
+                "SELECT company, title, description, location, company_id, med_salary "
+                "FROM jobs WHERE company_id = %s LIMIT %s OFFSET %s"
+            )
+            params = (request.company_id, request.limit, request.offset)
+            logger.debug("Executing query: %s with params: %s", query, params)
+            cursor.execute(query, params)
+            
+            # Fetch the results.
+            rows = cursor.fetchall()
+            logger.debug("Fetched %d rows", len(rows))
+            
+            # Transform rows into JobForLargestCompany objects.
+            job_postings = []
+            for idx, row in enumerate(rows):
+                job_obj = JobForLargestCompany(
+                    company=row["company"],
+                    title=row["title"],
+                    description=row["description"],
+                    location=row["location"],
+                    company_id=int(row["company_id"]) if row["company_id"] is not None else 0,
+                    med_salary=float(row["med_salary"]) if row["med_salary"] is not None else 0.0
+                )
+                job_postings.append(job_obj)
+            
+            logger.debug("Constructed a total of %d job postings", len(job_postings))
+            
+            # Close the cursor and connection.
+            cursor.close()
+            conn.close()
+            logger.debug("Database connection closed")
+            
+            logger.debug("Returning response with %d job postings", len(job_postings))
+            return JobPostingsForLargestCompaniesResponse(job=job_postings)
+        except Exception as e:
+            logger.error("Database error in GetJobPostingsForLargestCompanies: %s", e)
+            return JobPostingsForLargestCompaniesResponse(job=[])
+
+    def GetCompaniesWithEmployees(self, request, context):
+        logger.debug("GetCompaniesWithEmployees received")
         try:
             conn = psycopg2.connect(**DB_CONFIG)
-            logger.debug("GetJobReviewsWithFirm: Connected to database")
+            logger.debug("GetCompaniesWithEmployees: Connected to database")
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            cursor.execute("SELECT * FROM employee;")
+            rows = cursor.fetchall()
+            logger.debug("GetCompaniesWithEmployees: Fetched %d rows", len(rows))
+            
+            company = [
+                data_access_pb2.Company(
+                    company_id=row["company_id"] if row["company_id"] is not None else 0,
+                    employee_count=row["employee_count"] if row["employee_count"] is not None else 0,
+                    follower_count=row["follower_count"] if row["follower_count"] is not None else 0,
+                )
+                for row in rows
+            ]
+            logger.debug("GetCompaniesWithEmployees: Constructed %d companies", len(company))
+            cursor.close()
+            conn.close()
+            return CompaniesResponse(company=company)
+        except Exception as e:
+            logger.error("GetCompaniesWithEmployees: Database error: %s", e)
+            return CompaniesResponse(company=[])
+
+    def GetJobReviewsForCompanyReview(self, request, context):
+        logger.debug("GetJobReviewsForCompanyReview: Received request with limit: %d, offset: %d", request.limit, request.offset)
+        try:
+            conn = psycopg2.connect(**DB_CONFIG)
+            logger.debug("GetJobReviewsForCompanyReview: Connected to database")
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             cursor.execute(
                 "SELECT * FROM reviews LIMIT %s OFFSET %s", 
                 (request.limit, request.offset)
             )
             rows = cursor.fetchall()
-            logger.debug("GetJobReviewsWithFirm: Fetched %d rows", len(rows))
+            logger.debug("GetJobReviewsForCompanyReview: Fetched %d rows", len(rows))
             
             reviews = [
                 # Assuming 'Review' is defined in data_access_pb2; adjust import if necessary.
                 # If not, you might need to import it similarly to Job.
                 # For this example, we're assuming the same module defines Review.
                 data_access_pb2.Review(
-                    id=row["id"],
                     firm=row["firm"],
-                    job_title=row["job_title"],
-                    current=row["current"],
-                    location=row["location"],
                     overall_rating=row["overall_rating"] if row["overall_rating"] is not None else 0,
                     work_life_balance=row["work_life_balance"] if row["work_life_balance"] is not None else 0.0,
                     culture_values=row["culture_values"] if row["culture_values"] is not None else 0.0,
                     diversity_inclusion=row["diversity_inclusion"] if row["diversity_inclusion"] is not None else 0.0,
                     career_opp=row["career_opp"] if row["career_opp"] is not None else 0.0,
-                    comp_benefits=row["comp_benefits"] if row["comp_benefits"] is not None else 0.0,
-                    senior_mgmt=row["senior_mgmt"] if row["senior_mgmt"] is not None else 0.0,
-                    recommend=row["recommend"],
-                    ceo_approv=row["ceo_approv"],
-                    outlook=row["outlook"],
-                    headline=row["headline"],
-                    pros=row["pros"],
-                    cons=row["cons"]
                 )
                 for row in rows
             ]
-            logger.debug("GetJobReviewsWithFirm: Constructed %d reviews", len(reviews))
+            logger.debug("GetJobReviewsForCompanyReview: Constructed %d reviews", len(reviews))
             cursor.close()
             conn.close()
             return JobReviewsResponse(review=reviews)
         except Exception as e:
-            logger.error("GetJobReviewsWithFirm: Database error: %s", e)
+            logger.error("GetJobReviewsForCompanyReview: Database error: %s", e)
             return JobReviewsResponse(review=[])
+
+    def UpdateJobReview(self, request, context):
+        logger.debug("UpdateJobReview: Received update request for review id: %s", request.id)
+        try:
+            conn = psycopg2.connect(**DB_CONFIG)
+            logger.debug("UpdateJobReview: Connected to database")
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            
+            update_query = """
+                UPDATE reviews
+                SET current = %s,
+                    overall_rating = %s,
+                    headline = %s
+                WHERE id = %s
+            """
+            cursor.execute(update_query, (request.current_status, request.rating, request.headline, request.id))
+            conn.commit()
+            rowcount = cursor.rowcount
+            logger.debug("UpdateJobReview: %d row(s) updated", rowcount)
+            cursor.close()
+            conn.close()
+            
+            if rowcount == 0:
+                logger.error("UpdateJobReview: No review found with id: %s", request.id)
+                return UpdateJobReviewResponse(success=False, message="Review not found")
+            else:
+                return UpdateJobReviewResponse(success=True, message="Review updated successfully")
+        
+        except Exception as e:
+            logger.error("UpdateJobReview: Database error: %s", e)
+            return UpdateJobReviewResponse(success=False, message=str(e))
 
 def serve():
     interceptors = [ExceptionToStatusInterceptor()]
