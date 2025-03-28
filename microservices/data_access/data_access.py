@@ -65,7 +65,6 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
             return JobPostingsResponse(job=job_postings)
 
         except Exception as e:
-            logger.error(f"Database error: {e}")
             return JobPostingsResponse(job=[])
         
     def GetJobPostingsWithTitleAndCity(self, request, context):
