@@ -1,7 +1,6 @@
 import os
 import grpc
 from flask import Flask,jsonify , request
-from jobpostings_pb2 import AverageSalaryRequest
 from jobpostings_pb2_grpc import JobPostingServiceStub
 from jobreviews_pb2_grpc import JobReviewServiceStub
 from jobreviews_pb2 import BestCityRequest
@@ -24,9 +23,16 @@ def render_location():
     cities_request = BestCityRequest()
     cities_response = job_reviews_client.BestCity(cities_request)
     
-    return jsonify({
-        "cities": [city for city in cities_response.city]
-    }),200
+    # Convert Protobuf message objects to dictionaries
+    city_list = []
+    for city in cities_response.city:
+        city_dict = {
+            "name": city.city,
+            "average_rating": city.average_rating
+        }
+        city_list.append(city_dict)
+    
+    return jsonify({"cities": city_list}), 200
     
     
 @app.route("/AddJob", methods=["POST"])
@@ -35,7 +41,6 @@ def render_AddJob():
     data = request.get_json()
     
     if not data or not all(key in data for key in ["title", "normalized_salary", "company_name", "description", "location"]):
-        logger.warning("Requisição inválida: campos obrigatórios ausentes")
         return jsonify({
             "message": "Invalid request: missing required fields.",
             "status": 400

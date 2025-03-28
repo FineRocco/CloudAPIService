@@ -12,18 +12,6 @@ message Job {
   int32 views = 6; // Defaults to 0 if not provided.
 }
 
-
-// -----------------------------
-// Average Salary Messages
-// -----------------------------
-message AverageSalaryRequest {
-  string title = 1;
-}
-
-message AverageSalaryResponse {
-  float averageSalary = 1;
-}
-
 // -----------------------------
 // Job Posting Messages
 // -----------------------------
@@ -47,6 +35,5 @@ message JobAddResponse {
 
 // Service handling job posting functionalities.
 service JobPostingService {
-  rpc AverageSalary(AverageSalaryRequest) returns (AverageSalaryResponse);
   rpc AddJob(JobAddRequest) returns (JobAddResponse);  
 }
