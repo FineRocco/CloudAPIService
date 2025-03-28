@@ -1,6 +1,5 @@
 import random, os
 from concurrent import futures
-import logging
 
 import grpc
 import data_access_pb2
@@ -13,10 +12,6 @@ from data_access_pb2_grpc import DataAccessServiceStub
 from jobpostings_pb2 import (
     AverageSalaryResponse, JobPostingsForLargestCompaniesResponse
 )
-
-# Set up logging.
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
 
 data_access_host = os.getenv("DATAACCESSHOST", "data-access")
 
@@ -48,17 +43,12 @@ class JobPostingService(jobpostings_pb2_grpc.JobPostingServiceServicer):
         return AverageSalaryResponse(averageSalary=avg)
 
     def GetJobPostingsForLargestCompanies(self, request, context):
-        logger.debug("GetJobPostingsForLargestCompanies called")
-
         # Step 1: Retrieve companies with employees.
-        companies_request = data_access_pb2.CompaniesRequest()  # No fields needed.
-        logger.debug("Sending CompaniesRequest to get companies with employees")
+        companies_request = data_access_pb2.CompaniesRequest()
         companies_response = data_access_client.GetCompaniesWithEmployees(companies_request)
-        companies = companies_response.company  # A list of Company messages.
-        logger.debug("Retrieved %d companies", len(companies))
+        companies = companies_response.company
         
         if not companies:
-            logger.debug("No companies found in GetCompaniesWithEmployees; returning empty response")
             return jobpostings_pb2.JobPostingsForLargestCompaniesResponse(job=[])
         
         # Step 2: Sort companies by employee_count (descending)
@@ -82,33 +72,24 @@ class JobPostingService(jobpostings_pb2_grpc.JobPostingServiceServicer):
             if len(top_companies) == 5:
                 break
         
-        logger.debug("Top %d unique companies (by employee_count): %s", 
-                    len(top_companies), [c.company_id for c in top_companies])
-        
         # Step 3: For each top company, retrieve job postings in batches.
         all_job_postings = []
         limit = 30000  # Adjust this limit as needed.
         for company in top_companies:
             offset = 0
             company_id = company.company_id
-            logger.debug("Starting batch retrieval for company_id: %s", company_id)
             while True:
-                logger.debug("Preparing paginated request for company_id %s with limit %d and offset %d", company_id, limit, offset)
                 # Create a paginated request including a filter by company_id.
                 paginatedRequest = data_access_pb2.JobPostingsRequest(
                     company_id=company_id,
                     limit=limit,
                     offset=offset
                 )
-                logger.debug("Sending paginated request for company_id %s", company_id)
                 jobPostingsResponse = data_access_client.GetJobPostingsForLargestCompanies(paginatedRequest)
-                logger.debug("Received paginated response for company_id %s, offset %d", company_id, offset)
                 
                 batch_jobs = jobPostingsResponse.job
-                logger.debug("Retrieved %d job postings for company_id %s at offset %d", len(batch_jobs), company_id, offset)
                 
                 if not batch_jobs:
-                    logger.debug("No more job postings for company_id %s at offset %d; breaking loop", company_id, offset)
                     break
 
                 # Convert data_access_pb2.JobForLargestCompany to jobpostings_pb2.JobForLargestCompany
@@ -123,18 +104,12 @@ class JobPostingService(jobpostings_pb2_grpc.JobPostingServiceServicer):
                         med_salary=job.med_salary
                     )
                     all_job_postings.append(job_obj)
-
-                logger.debug("Accumulated %d job postings so far", len(all_job_postings))
                 
                 if len(batch_jobs) < limit:
-                    logger.debug("Batch size (%d) is less than limit (%d) for company_id %s; ending batch retrieval", len(batch_jobs), limit, company_id)
                     break
                 
                 offset += limit
-                logger.debug("Incremented offset to %d for company_id %s", offset, company_id)
 
-        logger.debug("Total job postings retrieved for top companies: %d", len(all_job_postings))
-        
         return jobpostings_pb2.JobPostingsForLargestCompaniesResponse(job=all_job_postings)
 
 def serve():

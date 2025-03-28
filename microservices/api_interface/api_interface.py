@@ -1,15 +1,10 @@
 import os
 import grpc
-import logging
-from flask import Flask, render_template, request
+from flask import Flask, jsonify, request, render_template
 from jobreviews_pb2 import BestCompaniesRequest, UpdateJobReviewRequest
 from jobreviews_pb2_grpc import JobReviewServiceStub
 from jobpostings_pb2 import AverageSalaryRequest, JobPostingsForLargestCompaniesRequest
 from jobpostings_pb2_grpc import JobPostingServiceStub
-
-# Set up logging.
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
@@ -31,52 +26,58 @@ job_reviews_client = JobReviewServiceStub(jobreviews_channel)
 
 @app.route("/")
 def render_homepage():
-    logger.debug("Homepage route called")
-    
     averageSalary_request = AverageSalaryRequest(title="Marketing Coordinator")
-    logger.debug("Sending AverageSalaryRequest: %s", averageSalary_request)
-    
     averageSalary_response = job_postings_client.AverageSalary(averageSalary_request)
-    logger.debug("Received AverageSalaryResponse: %s", averageSalary_response)
     
     return render_template(
         "homepage.html",
         averageSalary_response=averageSalary_response.averageSalary
     )
 
-@app.route("/bestCompanies")
+@app.route("/bestCompanies", methods=["GET"])
 def render_bestCompanies():
-    logger.debug("BestCompanies route called")
-    
     bestCompanies_request = BestCompaniesRequest()
-    logger.debug("Sending BestCompaniesRequest")
-    
     bestCompanies_response = job_reviews_client.GetBestCompanies(bestCompanies_request)
-    logger.debug("Received BestCompaniesResponse: %s", bestCompanies_response)
     
-    return render_template(
-        "bestCompanies.html",
-        bestCompanies_response=bestCompanies_response.companyReview
-    )
+    # Convert protobuf message to Python list for JSON serialization
+    companies = []
+    for company in bestCompanies_response.companyReview:
+        companies.append({
+            "firm": company.firm,
+            "overall_rating": company.overall_rating,
+            "work_life_balance": company.work_life_balance,
+            "culture_values": company.culture_values,
+            "diversity_inclusion": company.diversity_inclusion,
+            "career_opp": company.career_opp
+        })
+    
+    return jsonify({
+        "bestCompanies": companies
+    })
 
-@app.route("/jobsForLargestCompanies")
+@app.route("/jobsForLargestCompanies", methods=["GET"])
 def render_jobsForLargestCompanies():
-    logger.debug("JobsForLargestCompanies route called")
-    
     jobsForLargestCompanies_request = JobPostingsForLargestCompaniesRequest()
-    logger.debug("Sending JobsForLargestCompaniesRequest")
-    
     jobsForLargestCompanies_response = job_postings_client.GetJobPostingsForLargestCompanies(jobsForLargestCompanies_request)
     
-    return render_template(
-        "jobsFromLargestCompanies.html",
-        jobsForLargestCompanies_response=jobsForLargestCompanies_response.job
-    )
+    # Convert protobuf message to Python list for JSON serialization
+    jobs = []
+    for job in jobsForLargestCompanies_response.job:
+        jobs.append({
+            "company": job.company,
+            "title": job.title,
+            "description": job.description,
+            "location": job.location,
+            "company_id": job.company_id,
+            "med_salary": job.med_salary
+        })
+    
+    return jsonify({
+        "jobs": jobs
+    })
 
 @app.route("/updateReview", methods=["PUT"])
 def update_review():
-    logger.debug(f"UpdateReview route called with method: {request.method}")
-
     # If it's a GET request, just render the empty form
     if request.method == "GET":
         return render_template("updateReview.html", update_response=None)
@@ -90,8 +91,7 @@ def update_review():
         
         # Validate required fields.
         if not review_id or not rating or not headline or not current_status:
-            logger.error("UpdateReview: Missing required fields in request")
-            return "Invalid request body", 400
+            return jsonify({"error": "Missing required fields"}), 400
         
         # Build the gRPC request message. (Ensure these field names match your proto definitions.)
         update_request = UpdateJobReviewRequest(
@@ -100,19 +100,27 @@ def update_review():
             headline=headline,
             current_status=current_status
         )
-        logger.debug("Sending UpdateJobReviewRequest: %s", update_request)
         
         # Call the gRPC method to update the review.
         update_response = job_reviews_client.UpdateJobReview(update_request)
-        logger.debug("Received UpdateJobReviewResponse: %s", update_response)
         
-        # If the response indicates success, return HTTP 200.
-        return render_template("updateReview.html", update_response=update_response), 200
+        # Return JSON response
+        return jsonify({
+            "success": True,
+            "message": "Review updated successfully",
+            "data": {
+                "id": review_id,
+                "rating": rating,
+                "headline": headline,
+                "current_status": current_status
+            }
+        }), 200
         
     except Exception as e:
-        logger.exception("Internal server error during update review")
-        return render_template("updateReview.html", update_response={"success": False, "message": "Internal server error"}), 500
+        return jsonify({
+            "success": False, 
+            "message": f"Internal server error: {str(e)}"
+        }), 500
 
 if __name__ == "__main__":
-    logger.info("Starting API Interface on port 8082")
     app.run(host="0.0.0.0", port=8082)

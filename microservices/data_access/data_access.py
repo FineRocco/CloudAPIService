@@ -5,17 +5,12 @@ from concurrent import futures
 import grpc
 import psycopg2
 import psycopg2.extras
-import logging
 
 import data_access_pb2_grpc
 import data_access_pb2
 from grpc_interceptor import ExceptionToStatusInterceptor
 from grpc_interceptor.exceptions import NotFound
 from data_access_pb2 import Job, JobForLargestCompany, JobPostingsResponse, JobReviewsResponse, CompaniesResponse, UpdateJobReviewResponse, JobPostingsForLargestCompaniesResponse
-
-# Set up logging for debugging.
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
 
 DB_CONFIG = {
     "dbname": "mydatabase",
@@ -27,14 +22,11 @@ DB_CONFIG = {
 
 class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
     def GetJobPostings(self, request, context):
-        logger.debug("GetJobPostings: Received request for title: %s", request.title)
         try:
             conn = psycopg2.connect(**DB_CONFIG)
-            logger.debug("GetJobPostings: Connected to database")
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             cursor.execute("SELECT * FROM jobs WHERE title = %s", (request.title,))
             rows = cursor.fetchall()
-            logger.debug("GetJobPostings: Fetched %d rows", len(rows))
 
             # Transform rows into Job objects.
             job_postings = [
@@ -66,24 +58,17 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
                 )
                 for row in rows
             ]
-            logger.debug("GetJobPostings: Constructed %d job postings", len(job_postings))
             cursor.close()
             conn.close()
 
             return JobPostingsResponse(job=job_postings)
         except Exception as e:
-            logger.error("GetJobPostings: Database error: %s", e)
             return JobPostingsResponse(job=[])
 
     def GetJobPostingsForLargestCompanies(self, request, context):
-        logger.debug(
-            "GetJobPostingsForLargestCompanies called with company_id: %s, limit: %s, offset: %s",
-            request.company_id, request.limit, request.offset
-        )
         try:
             # Connect to the database.
             conn = psycopg2.connect(**DB_CONFIG)
-            logger.debug("Connected to database")
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             
             # Execute the SQL query.
@@ -92,12 +77,10 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
                 "FROM jobs WHERE company_id = %s LIMIT %s OFFSET %s"
             )
             params = (request.company_id, request.limit, request.offset)
-            logger.debug("Executing query: %s with params: %s", query, params)
             cursor.execute(query, params)
             
             # Fetch the results.
             rows = cursor.fetchall()
-            logger.debug("Fetched %d rows", len(rows))
             
             # Transform rows into JobForLargestCompany objects.
             job_postings = []
@@ -112,28 +95,20 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
                 )
                 job_postings.append(job_obj)
             
-            logger.debug("Constructed a total of %d job postings", len(job_postings))
-            
             # Close the cursor and connection.
             cursor.close()
             conn.close()
-            logger.debug("Database connection closed")
             
-            logger.debug("Returning response with %d job postings", len(job_postings))
             return JobPostingsForLargestCompaniesResponse(job=job_postings)
         except Exception as e:
-            logger.error("Database error in GetJobPostingsForLargestCompanies: %s", e)
             return JobPostingsForLargestCompaniesResponse(job=[])
 
     def GetCompaniesWithEmployees(self, request, context):
-        logger.debug("GetCompaniesWithEmployees received")
         try:
             conn = psycopg2.connect(**DB_CONFIG)
-            logger.debug("GetCompaniesWithEmployees: Connected to database")
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             cursor.execute("SELECT * FROM employee;")
             rows = cursor.fetchall()
-            logger.debug("GetCompaniesWithEmployees: Fetched %d rows", len(rows))
             
             company = [
                 data_access_pb2.Company(
@@ -143,31 +118,23 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
                 )
                 for row in rows
             ]
-            logger.debug("GetCompaniesWithEmployees: Constructed %d companies", len(company))
             cursor.close()
             conn.close()
             return CompaniesResponse(company=company)
         except Exception as e:
-            logger.error("GetCompaniesWithEmployees: Database error: %s", e)
             return CompaniesResponse(company=[])
 
     def GetJobReviewsForCompanyReview(self, request, context):
-        logger.debug("GetJobReviewsForCompanyReview: Received request with limit: %d, offset: %d", request.limit, request.offset)
         try:
             conn = psycopg2.connect(**DB_CONFIG)
-            logger.debug("GetJobReviewsForCompanyReview: Connected to database")
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             cursor.execute(
                 "SELECT * FROM reviews LIMIT %s OFFSET %s", 
                 (request.limit, request.offset)
             )
             rows = cursor.fetchall()
-            logger.debug("GetJobReviewsForCompanyReview: Fetched %d rows", len(rows))
             
             reviews = [
-                # Assuming 'Review' is defined in data_access_pb2; adjust import if necessary.
-                # If not, you might need to import it similarly to Job.
-                # For this example, we're assuming the same module defines Review.
                 data_access_pb2.Review(
                     firm=row["firm"],
                     overall_rating=row["overall_rating"] if row["overall_rating"] is not None else 0,
@@ -178,19 +145,15 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
                 )
                 for row in rows
             ]
-            logger.debug("GetJobReviewsForCompanyReview: Constructed %d reviews", len(reviews))
             cursor.close()
             conn.close()
             return JobReviewsResponse(review=reviews)
         except Exception as e:
-            logger.error("GetJobReviewsForCompanyReview: Database error: %s", e)
             return JobReviewsResponse(review=[])
 
     def UpdateJobReview(self, request, context):
-        logger.debug("UpdateJobReview: Received update request for review id: %s", request.id)
         try:
             conn = psycopg2.connect(**DB_CONFIG)
-            logger.debug("UpdateJobReview: Connected to database")
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             
             update_query = """
@@ -203,18 +166,15 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
             cursor.execute(update_query, (request.current_status, request.rating, request.headline, request.id))
             conn.commit()
             rowcount = cursor.rowcount
-            logger.debug("UpdateJobReview: %d row(s) updated", rowcount)
             cursor.close()
             conn.close()
             
             if rowcount == 0:
-                logger.error("UpdateJobReview: No review found with id: %s", request.id)
                 return UpdateJobReviewResponse(success=False, message="Review not found")
             else:
                 return UpdateJobReviewResponse(success=True, message="Review updated successfully")
         
         except Exception as e:
-            logger.error("UpdateJobReview: Database error: %s", e)
             return UpdateJobReviewResponse(success=False, message=str(e))
 
 def serve():
@@ -227,7 +187,6 @@ def serve():
     )
 
     server.add_insecure_port("[::]:50051")
-    logger.info("Server starting on [::]:50051")
     server.start()
     server.wait_for_termination()
 

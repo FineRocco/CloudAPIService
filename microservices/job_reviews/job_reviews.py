@@ -9,11 +9,6 @@ from grpc_interceptor.exceptions import NotFound
 from data_access_pb2 import JobReviewsRequest, UpdateJobReviewRequest
 from data_access_pb2_grpc import DataAccessServiceStub
 from jobreviews_pb2 import BestCompaniesResponse, UpdateJobReviewResponse
-import logging
-
-# Set up logging.
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
 
 data_access_host = os.getenv("DATAACCESSHOST", "data-access")
 job_reviews_channel = grpc.insecure_channel(f"{data_access_host}:50051", options=[
@@ -24,8 +19,6 @@ data_access_client = DataAccessServiceStub(job_reviews_channel)
 
 class JobReviewService(jobreviews_pb2_grpc.JobReviewServiceServicer):
     def GetBestCompanies(self, request, context):
-        logger.debug("GetBestCompanies called")
-
         # Retrieve reviews in batches.
         all_reviews = []
         offset = 0
@@ -37,7 +30,6 @@ class JobReviewService(jobreviews_pb2_grpc.JobReviewServiceServicer):
             )
             jobReviewsResponse = data_access_client.GetJobReviewsForCompanyReview(paginatedRequest)
             batch_reviews = jobReviewsResponse.review
-            logger.debug("Retrieved %d reviews for offset %d", len(batch_reviews), offset)
             if not batch_reviews:
                 break
             all_reviews.extend(batch_reviews)
@@ -45,11 +37,8 @@ class JobReviewService(jobreviews_pb2_grpc.JobReviewServiceServicer):
                 break
             offset += limit
 
-        logger.debug("Total reviews retrieved: %d", len(all_reviews))
-
         # Debug 1: No reviews found.
         if not all_reviews:
-            logger.debug("DEBUG 1: No reviews found")
             debug_company = jobreviews_pb2.CompanyReview(
                 firm="DEBUG: NO REVIEWS FOUND",
                 overall_rating=-100,
@@ -67,11 +56,9 @@ class JobReviewService(jobreviews_pb2_grpc.JobReviewServiceServicer):
             if firm not in firm_reviews:
                 firm_reviews[firm] = []
             firm_reviews[firm].append(r)
-        logger.debug("Grouped reviews into %d firms", len(firm_reviews))
 
         # Debug 2: No firm grouping occurred.
         if not firm_reviews:
-            logger.debug("DEBUG 2: No firm grouping occurred")
             debug_company = jobreviews_pb2.CompanyReview(
                 firm="DEBUG: NO FIRM GROUPING",
                 overall_rating=-101,
@@ -119,12 +106,9 @@ class JobReviewService(jobreviews_pb2_grpc.JobReviewServiceServicer):
                 career_opp=avg_career
             )
             company_reviews.append((overall_avg, company_review))
-            logger.debug("Computed averages for firm '%s': overall=%.2f, wlb=%.2f, culture=%.2f, diversity=%.2f, career=%.2f",
-                        firm, avg_overall, avg_wlb, avg_culture, avg_diversity, avg_career)
 
         # Debug 3: No companies computed.
         if not company_reviews:
-            logger.debug("DEBUG 3: No company reviews computed")
             debug_company = jobreviews_pb2.CompanyReview(
                 firm="DEBUG: NO COMPANY REVIEWS COMPUTED",
                 overall_rating=-102,
@@ -136,13 +120,11 @@ class JobReviewService(jobreviews_pb2_grpc.JobReviewServiceServicer):
             return BestCompaniesResponse(companyReview=[debug_company])
 
         # Sort the companies by overall average (descending) and pick the top 5.
-        company_reviews.sort(key=lambda x: x[0], reverse=True)
+        company_reviews.sort(key=lambda x: (x[0], x[1].firm), reverse=True)
         top_companies = [cr for _, cr in company_reviews[:5]]
-        logger.debug("Top companies computed: %s", [company.firm for company in top_companies])
 
         # Debug 4: Top companies list is empty.
         if not top_companies:
-            logger.debug("DEBUG 4: Top companies list is empty")
             debug_company = jobreviews_pb2.CompanyReview(
                 firm="DEBUG: TOP COMPANIES EMPTY",
                 overall_rating=-103,
@@ -156,11 +138,6 @@ class JobReviewService(jobreviews_pb2_grpc.JobReviewServiceServicer):
         return BestCompaniesResponse(companyReview=top_companies)
 
     def UpdateJobReview(self, request, context):
-        logger.debug(
-            "UpdateJobReview called with id: %s, current_status: %s, rating: %s, headline: %s",
-            request.id, request.current_status, request.rating, request.headline
-        )
-        
         # Create the update request message from the incoming request.
         update_req = UpdateJobReviewRequest(
             id=request.id,
@@ -168,11 +145,9 @@ class JobReviewService(jobreviews_pb2_grpc.JobReviewServiceServicer):
             rating=request.rating,
             headline=request.headline
         )
-        logger.debug("Sending UpdateJobReviewRequest: %s", update_req)
         
         # Delegate the update to the data access client.
         update_resp = data_access_client.UpdateJobReview(update_req)
-        logger.debug("Received UpdateJobReviewResponse: %s", update_resp)
         
         return update_resp
 
@@ -186,7 +161,6 @@ def serve():
         JobReviewService(), server
     )
     server.add_insecure_port("[::]:50051")
-    logger.info("JobReviewService server starting on [::]:50051")
     server.start()
     server.wait_for_termination()
 
