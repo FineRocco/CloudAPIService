@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import psycopg2
 import psycopg2.extras
-
+import logging
 import random, os
 from concurrent import futures
 import grpc
@@ -11,6 +11,12 @@ from grpc_interceptor.exceptions import NotFound
 from data_access_pb2 import (
     Job, Review, JobPostingsResponse, JobReviewsResponse
 )
+from data_access_pb2 import PostJobResponse
+import data_access_pb2
+
+# Configuração do logger
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
 
 DB_CONFIG = {
     "dbname": "mydatabase",
@@ -69,7 +75,6 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
             return JobPostingsResponse(job=[])
 
 
-
     def GetJobReviewsForCompanyReview(self, request, context):
         try:
             conn = psycopg2.connect(**DB_CONFIG)
@@ -111,7 +116,63 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
             return JobReviewsResponse(review=reviews)
         except Exception as e:
             return JobReviewsResponse(review=[])
+        
+    def PostJobInDB(self, request, context):
+        try:
+            logger.debug("Recebendo requisição para PostJobInDB")
+            logger.debug(f"Dados recebidos: title={request.title}, company_name={request.company_name}, "
+                         f"description={request.description}, location={request.location}, "
+                         f"normalized_salary={request.normalized_salary}")
 
+            # Conectar ao banco de dados
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor()
+
+            # Gerar um ID único para o trabalho
+            job_id = self.generate_unique_job_id(cursor)
+            logger.debug(f"ID único gerado: {job_id}")
+
+            # Inserir um novo trabalho com o ID gerado
+            cursor.execute("""
+                INSERT INTO jobs (job_id, title, company, description, location, normalized_salary)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (
+                job_id,
+                request.title,
+                request.company_name,
+                request.description,
+                request.location,
+                request.normalized_salary,
+            ))
+            logger.info(f"Trabalho inserido com sucesso no banco de dados: job_id={job_id}")
+
+            # Commit para persistir as alterações
+            conn.commit()
+
+            cursor.close()
+            conn.close()
+
+            # Retornar a resposta de sucesso
+            return data_access_pb2.PostJobResponse(
+                message="Job successfully inserted",
+                status=200
+            )
+
+        except Exception as e:
+            logger.error(f"Erro ao atualizar ou inserir o trabalho: {e}")
+            return data_access_pb2.PostJobResponse(
+                message=f"Erro ao atualizar ou inserir o trabalho: {e}",
+                status=500
+            )
+
+    def generate_unique_job_id(self, cursor):
+        """Gera um ID único para o trabalho."""
+        while True:
+            # Gerar um ID aleatório
+            new_id = random.randint(1, 999999)  # Exemplo: ID de 4 dígitos
+            cursor.execute("SELECT * FROM jobs WHERE job_id = %s", (new_id,))
+            if not cursor.fetchone():
+                return new_id
         
 def serve():
     interceptors = [ExceptionToStatusInterceptor()]
