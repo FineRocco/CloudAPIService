@@ -72,8 +72,22 @@ message JobReviewsResponse {
  repeated Review review = 1;
 }
 
+message PostJobRequest {
+  string title = 1;
+  float normalized_salary =2;
+  string company_name = 3;
+  string description = 4;
+  string location = 5;
+}
+
+message PostJobResponse {
+  string message = 1;
+  int32 status = 2;
+}
+
 // Service definition exposing the data access methods.
 service DataAccessService {
   rpc GetJobPostings (JobPostingsRequestWithTitle) returns (JobPostingsResponse);
   rpc GetJobReviewsForCompanyReview (JobReviewsRequest) returns (JobReviewsResponse);
+  rpc PostJobInDB (PostJobRequest) returns (PostJobResponse);
 }
