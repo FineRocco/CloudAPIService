@@ -1,0 +1,69 @@
+services:
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: mydatabase
+    volumes:
+      - ./datasets:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - microservices
+
+  data-access:
+    build:
+      context: ./microservices
+      dockerfile: data_access/Dockerfile
+    container_name: data_access_service
+    networks:
+      - microservices
+    ports:
+      - "8083:50051"
+    environment:
+      DB_HOST: db          # Use the service name as the hostname
+      DB_USER: myuser
+      DB_PASSWORD: mypassword
+      DB_NAME: mydatabase
+
+  api-interface:
+    build: 
+      context: ./microservices
+      dockerfile: api_interface/Dockerfile
+    networks:
+      - microservices
+    ports:
+      - "8082:8082"
+    environment:
+      JOBPOSTINSHOST: job-postings
+      JOBREVIEWSHOST: job-reviews
+
+  job-postings:
+    build:
+      context: ./microservices
+      dockerfile: job_postings/Dockerfile
+    networks:
+      - microservices
+    ports:
+      - "8081:50051"
+    environment:
+      DATA_ACCESS_HOST: data-access
+      JOBREVIEWSHOST: job-reviews
+
+  job-reviews:
+    build:
+      context: ./microservices
+      dockerfile: job_reviews/Dockerfile
+    networks:
+      - microservices
+    ports:
+     - "8084:50051"
+    environment:
+      DATA_ACCESS_HOST: data-access
+
+networks:
+  microservices:
+    driver: bridge
