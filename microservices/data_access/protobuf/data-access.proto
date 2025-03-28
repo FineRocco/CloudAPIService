@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+package dataaccess;
+
+// Message representing a job record.
+message Job {
+  int64 job_id = 1;
+  string company = 2;
+  string title = 3;
+  string description = 4;
+  double max_salary = 5;         // Using double for NUMERIC fields.
+  string pay_period = 6;
+  string location = 7;
+  float company_id = 8;          // Matches the table's FLOAT type.
+  float views = 9;
+  double med_salary = 10;
+  double min_salary = 11;
+  string formatted_work_type = 12;
+  bool remote_allowed = 13;
+  string job_posting_url = 14;
+  string aplication_url = 15;
+  string application_type = 16;
+  string formatted_experience_level = 17;
+  string skills_desc = 18;
+  string posting_domain = 19;
+  bool sponsored = 20;
+  string work_type = 21;
+  string currency = 22;
+  double normalized_salary = 23;
+  float zip_code = 24;           // Although zip codes are usually strings, this matches your table.
+}
+
+// Message representing a review record.
+message Review {
+  string firm = 2;
+  string job_title = 3;
+  string current = 4;
+  string location = 5;
+  int32 overall_rating = 6;
+  float work_life_balance = 7;
+  float culture_values = 8;
+  float diversity_inclusion = 9;
+  float career_opp = 10;
+  float comp_benefits = 11;
+  float senior_mgmt = 12;
+  string recommend = 13;
+  string ceo_approv = 14;
+  string outlook = 15;
+  string headline = 16;
+  string pros = 17;
+  string cons = 18;
+}
+
+// -----------------------------
+// Requests and Responses
+// -----------------------------
+message JobPostingsRequestWithTitle {
+  string title = 1;
+}
+
+message JobPostingsRequestWithTitleAndCity {
+  string title = 1;
+  string city = 2;
+}
+
+message JobReviewsRequest {
+}
+
+message JobReviewRequestWithTitleAndCity {
+  string title = 1;
+  string city = 2;
+}
+
+message JobPostingsResponse {
+ repeated Job job = 1;
+}
+
+message JobReviewsResponse {
+ repeated Review review = 1;
+}
+
+message CreateReviewRequest {
+  Review review = 1;
+}
+
+message CreateReviewResponse {
+  string success = 1;
+}
+
+// Service definition exposing the data access methods.
+service DataAccessService {
+  rpc GetJobPostingsWithTitle (JobPostingsRequestWithTitle) returns (JobPostingsResponse);
+  rpc GetJobPostingsWithTitleAndCity (JobPostingsRequestWithTitleAndCity) returns (JobPostingsResponse);
+  rpc GetJobReviews (JobReviewsRequest) returns (JobReviewsResponse);
+  rpc GetJobReviewsWithTitleAndCity (JobReviewRequestWithTitleAndCity) returns (JobReviewsResponse);
+  rpc CreateReview (CreateReviewRequest) returns (CreateReviewResponse);
+}
