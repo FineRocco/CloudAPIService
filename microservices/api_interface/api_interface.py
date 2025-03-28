@@ -1,5 +1,4 @@
 import os
-import logging
 import grpc
 from flask import Flask,jsonify , request
 from jobpostings_pb2 import AverageSalaryRequest
@@ -9,10 +8,6 @@ from jobreviews_pb2 import BestCityRequest
 from jobpostings_pb2 import JobAddRequest
 
 app = Flask(__name__)
-
-# Configuração do logger
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
-logger = logging.getLogger(__name__)
 
 jobpostings_host = os.getenv("JOBPOSTINSHOST", "job-postings")
 jobpostings_channel = grpc.insecure_channel(f"{jobpostings_host}:50051")
@@ -36,13 +31,9 @@ def render_location():
     
 @app.route("/AddJob", methods=["POST"])
 def render_AddJob():
-    logger.debug("Recebendo requisição para /AddJob")
     
-    # Obter os dados do corpo da requisição (JSON)
     data = request.get_json()
-    logger.debug(f"Dados recebidos: {data}")
-
-    # Validar se todos os campos obrigatórios estão presentes
+    
     if not data or not all(key in data for key in ["title", "normalized_salary", "company_name", "description", "location"]):
         logger.warning("Requisição inválida: campos obrigatórios ausentes")
         return jsonify({
@@ -50,7 +41,6 @@ def render_AddJob():
             "status": 400
         }), 400
 
-    # Criar o JobAddRequest com os dados recebidos
     try:
         job_request = JobAddRequest(
             title=data["title"],
@@ -59,26 +49,20 @@ def render_AddJob():
             description=data["description"],
             location=data["location"]
         )
-        logger.debug(f"JobAddRequest criado: {job_request}")
     except Exception as e:
-        logger.error(f"Erro ao criar JobAddRequest: {e}")
         return jsonify({
             "message": f"Error creating JobAddRequest: {e}",
             "status": 500
         }), 500
 
-    # Chamar o serviço gRPC para adicionar o trabalho
     try:
         job_response = job_postings_client.AddJob(job_request)
-        logger.debug(f"Resposta do serviço gRPC: {job_response}")
     except Exception as e:
-        logger.error(f"Erro ao chamar o serviço gRPC: {e}")
         return jsonify({
             "message": f"Error calling gRPC service: {e}",
             "status": 500
         }), 500
 
-    # Retornar a resposta
     return jsonify({
         "job_request": {
             "title": job_request.title,
