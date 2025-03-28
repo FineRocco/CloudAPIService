@@ -12,6 +12,11 @@ message Job {
   int32 views = 6; // Defaults to 0 if not provided.
 }
 
+message JobWithRating {
+  int32 rating = 1;
+  Job job = 2;
+}
+
 // -----------------------------
 // Average Salary Messages
 // -----------------------------
@@ -22,6 +27,19 @@ message AverageSalaryRequest {
 message AverageSalaryResponse {
   float averageSalary = 1;
 }
+
+// -----------------------------
+// Jobs With Rating Messages
+// -----------------------------
+message JobsWithRatingRequest {
+  string title = 1;
+  string city = 2;
+}
+
+message JobsWithRatingResponse {
+  repeated JobWithRating jobs = 1;
+}
+
 // -----------------------------
 // Service Definition
 // -----------------------------
@@ -29,4 +47,5 @@ message AverageSalaryResponse {
 // Service handling job posting functionalities.
 service JobPostingService {
   rpc AverageSalary(AverageSalaryRequest) returns (AverageSalaryResponse);
+  rpc JobsWithRating(JobsWithRatingRequest) returns (JobsWithRatingResponse);
 }

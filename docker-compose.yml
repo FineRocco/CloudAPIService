@@ -51,6 +51,7 @@ services:
       - "8081:50051"
     environment:
       DATA_ACCESS_HOST: data-access
+      JOBREVIEWSHOST: job-reviews
 
   job-reviews:
     build:

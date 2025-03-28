@@ -32,7 +32,6 @@ message Job {
 
 // Message representing a review record.
 message Review {
-  int32 id = 1;
   string firm = 2;
   string job_title = 3;
   string current = 4;
@@ -59,7 +58,17 @@ message JobPostingsRequestWithTitle {
   string title = 1;
 }
 
+message JobPostingsRequestWithTitleAndCity {
+  string title = 1;
+  string city = 2;
+}
+
 message JobReviewsRequest {
+}
+
+message JobReviewRequestWithTitleAndCity {
+  string title = 1;
+  string city = 2;
 }
 
 message JobPostingsResponse {
@@ -70,8 +79,19 @@ message JobReviewsResponse {
  repeated Review review = 1;
 }
 
+message CreateReviewRequest {
+  Review review = 1;
+}
+
+message CreateReviewResponse {
+  string success = 1;
+}
+
 // Service definition exposing the data access methods.
 service DataAccessService {
-  rpc GetJobPostings (JobPostingsRequestWithTitle) returns (JobPostingsResponse);
+  rpc GetJobPostingsWithTitle (JobPostingsRequestWithTitle) returns (JobPostingsResponse);
+  rpc GetJobPostingsWithTitleAndCity (JobPostingsRequestWithTitleAndCity) returns (JobPostingsResponse);
   rpc GetJobReviews (JobReviewsRequest) returns (JobReviewsResponse);
+  rpc GetJobReviewsWithTitleAndCity (JobReviewRequestWithTitleAndCity) returns (JobReviewsResponse);
+  rpc CreateReview (CreateReviewRequest) returns (CreateReviewResponse);
 }

@@ -1,15 +1,41 @@
 syntax = "proto3";
 
-package jobpostings;
+package jobreviews;
 
 // Represents a job posting.
-message Job {
+message JobReview {
   string id = 1;
   string title = 2;
   string company_name = 3;
   string description = 4;
   string location = 5;
   int32 views = 6; // Defaults to 0 if not provided.
+}
+
+// Message representing a review record.
+message ReviewinJob {
+  string firm = 2;
+  string job_title = 3;
+  string current = 4;
+  string location = 5;
+  int32 overall_rating = 6;
+  float work_life_balance = 7;
+  float culture_values = 8;
+  float diversity_inclusion = 9;
+  float career_opp = 10;
+  float comp_benefits = 11;
+  float senior_mgmt = 12;
+  string recommend = 13;
+  string ceo_approv = 14;
+  string outlook = 15;
+  string headline = 16;
+  string pros = 17;
+  string cons = 18;
+}
+
+message JobWithRating {
+  int32 rating = 1;
+  JobReview job = 2;
 }
 
 // -----------------------------
@@ -23,6 +49,23 @@ message AverageSalaryResponse {
   float averageSalary = 1;
 }
 
+message CalculateRatingRequest {
+  repeated JobReview jobs = 1;
+}
+
+message CalculateRatingResponse {
+  repeated JobWithRating rating = 1; 
+}
+
+message CreateReviewRequest {
+  ReviewinJob review = 1;
+}
+
+message CreateReviewResponse {
+  string success = 1;
+}
+
+
 // -----------------------------
 // Service Definition
 // -----------------------------
@@ -30,4 +73,6 @@ message AverageSalaryResponse {
 // Service handling job posting functionalities.
 service JobReviewService {
   rpc AverageSalary(AverageSalaryRequest) returns (AverageSalaryResponse);
+  rpc CalculateRating(CalculateRatingRequest) returns (CalculateRatingResponse);
+  rpc CreateReview(CreateReviewRequest) returns (CreateReviewResponse);
 }
