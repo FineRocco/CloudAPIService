@@ -83,6 +83,11 @@ message UpdateJobReviewResponse {
 
 message JobPostingsRequestWithTitle {
   string title = 1;
+  string city = 2;
+}
+
+message JobReviewsResponse {
+ repeated Review review = 1;
 }
 
 message JobPostingsRequestWithTitleAndCity {
@@ -123,16 +128,25 @@ message JobPostingsResponse {
  repeated Job job = 1;
 }
 
-message JobReviewsResponse {
- repeated Review review = 1;
-}
-
 message CreateReviewRequest {
   Review review = 1;
 }
 
 message CreateReviewResponse {
   string success = 1;
+}
+
+message PostJobResponse {
+  string message = 1;
+  int32 status = 2;
+}
+
+message PostJobRequest {
+  string title = 1;
+  float normalized_salary =2;
+  string company_name = 3;
+  string description = 4;
+  string location = 5;
 }
 
 // Service definition exposing the data access methods.
@@ -145,4 +159,5 @@ service DataAccessService {
   rpc GetJobPostingsForLargestCompanies (JobPostingsRequest) returns (JobPostingsForLargestCompaniesResponse);
   rpc GetCompaniesWithEmployees (CompaniesRequest) returns (CompaniesResponse);
   rpc UpdateJobReview (UpdateJobReviewRequest) returns (UpdateJobReviewResponse);
+  rpc PostJobInDB (PostJobRequest) returns (PostJobResponse);
 }

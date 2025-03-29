@@ -58,6 +58,22 @@ message JobsWithRatingRequest {
 message JobsWithRatingResponse {
   repeated JobWithRating jobs = 1;
 }
+// -----------------------------
+// Job Posting Messages
+// -----------------------------
+
+message JobAddRequest {
+    string title = 1;
+    float normalized_salary =2;
+    string company_name = 3;
+    string description = 4;
+    string location = 5;
+}
+
+message JobAddResponse {
+    string message = 1;
+    int32 status = 2;
+}
 
 // -----------------------------
 // Service Definition
@@ -68,4 +84,5 @@ service JobPostingService {
   rpc AverageSalary(AverageSalaryRequest) returns (AverageSalaryResponse);
   rpc JobsWithRating(JobsWithRatingRequest) returns (JobsWithRatingResponse);
   rpc GetJobPostingsForLargestCompanies (JobPostingsForLargestCompaniesRequest) returns (JobPostingsForLargestCompaniesResponse);
+  rpc AddJob(JobAddRequest) returns (JobAddResponse);  
 }

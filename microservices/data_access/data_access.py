@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-import os
-import random
-from concurrent import futures
-import grpc
 import psycopg2
 import psycopg2.extras
 
+import random, os
+from concurrent import futures
+import grpc
+import data_access_pb2
 import data_access_pb2_grpc
 import data_access_pb2
 from grpc_interceptor import ExceptionToStatusInterceptor
 from grpc_interceptor.exceptions import NotFound
-from data_access_pb2 import Job, Review, JobForLargestCompany, JobPostingsResponse, JobReviewsResponse, CompaniesResponse, UpdateJobReviewResponse, JobPostingsForLargestCompaniesResponse, CreateReviewResponse
+from data_access_pb2 import Job, Review, JobForLargestCompany, JobPostingsResponse, JobReviewsResponse, CompaniesResponse, UpdateJobReviewResponse, JobPostingsForLargestCompaniesResponse, CreateReviewResponse, PostJobResponse
 
 DB_CONFIG = {
     "dbname": "mydatabase",
@@ -232,6 +232,9 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
             )
             rows = cursor.fetchall()
             reviews = [
+                # Assuming 'Review' is defined in data_access_pb2; adjust import if necessary.
+                # If not, you might need to import it similarly to Job.
+                # For this example, we're assuming the same module defines Review.
                 Review(
                     id=row["id"],
                     firm=row["firm"],
@@ -315,7 +318,53 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
         except Exception as e:
             print(f"Database error: {e}")
             return CreateReviewResponse(success="Failed to add review.")
+        
+    def PostJobInDB(self, request, context):
+        try:
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor()
 
+            job_id = self.generate_unique_job_id(cursor)
+
+            cursor.execute("""
+                INSERT INTO jobs (job_id, title, company, description, location, normalized_salary)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (
+                job_id,
+                request.title,
+                request.company_name,
+                request.description,
+                request.location,
+                request.normalized_salary,
+            ))
+
+            # Commit para persistir as alterações
+            conn.commit()
+
+            cursor.close()
+            conn.close()
+
+            # Retornar a resposta de sucesso
+            return data_access_pb2.PostJobResponse(
+                message="Job successfully inserted",
+                status=200
+            )
+
+        except Exception as e:
+            return data_access_pb2.PostJobResponse(
+                message=f"Erro ao atualizar ou inserir o trabalho: {e}",
+                status=500
+            )
+
+    def generate_unique_job_id(self, cursor):
+        """Gera um ID único para o trabalho."""
+        while True:
+            # Gerar um ID aleatório
+            new_id = random.randint(1, 999999)  # Exemplo: ID de 4 dígitos
+            cursor.execute("SELECT * FROM jobs WHERE job_id = %s", (new_id,))
+            if not cursor.fetchone():
+                return new_id
+        
 def serve():
     interceptors = [ExceptionToStatusInterceptor()]
     server = grpc.server(

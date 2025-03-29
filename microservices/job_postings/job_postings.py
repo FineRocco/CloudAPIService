@@ -9,17 +9,16 @@ from grpc_interceptor import ExceptionToStatusInterceptor
 from grpc_interceptor.exceptions import NotFound
 from jobreviews_pb2 import CalculateRatingRequest, JobReview
 from jobreviews_pb2_grpc import JobReviewServiceStub
-from data_access_pb2 import JobPostingsRequestWithTitle, JobPostingsRequestWithTitleAndCity, JobPostingsRequest, CompaniesRequest
+from data_access_pb2 import JobPostingsRequestWithTitle, JobPostingsRequestWithTitleAndCity, JobPostingsRequest, CompaniesRequest, PostJobRequest
 from data_access_pb2_grpc import DataAccessServiceStub
 from jobpostings_pb2 import (
     Job,
     JobWithRating,
     AverageSalaryResponse,
     JobsWithRatingResponse,
-    JobPostingsForLargestCompaniesResponse
+    JobPostingsForLargestCompaniesResponse,
+    JobAddResponse
 )
-
-
 
 data_access_host = os.getenv("DATAACCESSHOST", "data-access")
 job_review_host = os.getenv("JOBREVIEWHOST", "job-reviews")
@@ -169,6 +168,40 @@ class JobPostingService(jobpostings_pb2_grpc.JobPostingServiceServicer):
 
         return jobpostings_pb2.JobPostingsForLargestCompaniesResponse(job=all_job_postings)
 
+    def AddJob(self, request, context):
+        if not request.title or not request.company_name or not request.description or not request.location or request.normalized_salary is None:
+            return JobAddResponse(
+                message="Invalid request: missing required fields.",
+                status=400
+            )
+
+        job_request = PostJobRequest(
+            title=request.title,
+            normalized_salary=request.normalized_salary,
+            company_name=request.company_name,
+            description=request.description,
+            location=request.location
+        )
+        try:
+            job_response = data_access_client.PostJobInDB(job_request)
+        except Exception as e:
+            return JobAddResponse(
+                message=f"Error calling DataAccessService: {e}",
+                status=500
+            )
+        
+        # Verificar se a inserção/atualização foi bem-sucedida
+        if job_response.status == 200:
+            return JobAddResponse(
+                message="Job added successfully",
+                status=201  # Success code (201 - Created)
+            )
+        else:
+            return JobAddResponse(
+                message=f"Error adding the job: {job_response.message}",
+                status=500
+            )
+        
 def serve():
     interceptors = [ExceptionToStatusInterceptor()]
     server = grpc.server(

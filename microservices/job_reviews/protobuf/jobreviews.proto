@@ -78,6 +78,22 @@ message CalculateRatingResponse {
   repeated JobWithRating rating = 1; 
 }
 
+// -----------------------------
+// Best rating Cities
+// -----------------------------
+
+message BestRatingCity {
+  string city = 1;
+  float average_rating = 2;
+}
+
+message BestCityRequest {
+}
+
+message BestCityResponse {
+  repeated BestRatingCity city = 1;
+}
+
 message CreateReviewRequest {
   ReviewinJob review = 1;
 }
@@ -86,15 +102,14 @@ message CreateReviewResponse {
   string success = 1;
 }
 
-
 // -----------------------------
 // Service Definition
 // -----------------------------
 
-// Service handling job posting functionalities.
 service JobReviewService {
   rpc CalculateRating(CalculateRatingRequest) returns (CalculateRatingResponse);
   rpc CreateReview(CreateReviewRequest) returns (CreateReviewResponse);
   rpc GetBestCompanies(BestCompaniesRequest) returns (BestCompaniesResponse);
   rpc UpdateJobReview(UpdateJobReviewRequest) returns (UpdateJobReviewResponse);
+  rpc BestCity(BestCityRequest) returns (BestCityResponse);
 }
