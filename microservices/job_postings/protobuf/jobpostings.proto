@@ -12,6 +12,16 @@ message Job {
   int32 views = 6; // Defaults to 0 if not provided.
 }
 
+message JobForRemote {
+  string id = 1;
+  string title = 2;
+  string company = 3;
+  string description = 4;
+  string location = 5;
+  bool remote_allowed = 6;
+}
+
+
 message JobWithRating {
   int32 rating = 1;
   Job job = 2;
@@ -75,6 +85,21 @@ message JobAddResponse {
     int32 status = 2;
 }
 
+
+// -----------------------------
+// Remote Jobs Message
+// -----------------------------
+
+message RemoteJobSearchRequest {
+  string city = 1;
+  string keyword = 2;
+  string company = 3;
+}
+
+message RemoteJobSearchResponse {
+  repeated JobForRemote jobs = 1;
+}
+
 // -----------------------------
 // Service Definition
 // -----------------------------
@@ -84,5 +109,6 @@ service JobPostingService {
   rpc AverageSalary(AverageSalaryRequest) returns (AverageSalaryResponse);
   rpc JobsWithRating(JobsWithRatingRequest) returns (JobsWithRatingResponse);
   rpc GetJobPostingsForLargestCompanies (JobPostingsForLargestCompaniesRequest) returns (JobPostingsForLargestCompaniesResponse);
-  rpc AddJob(JobAddRequest) returns (JobAddResponse);  
+  rpc AddJob(JobAddRequest) returns (JobAddResponse);
+  rpc GetRemoteJobs(RemoteJobSearchRequest) returns (RemoteJobSearchResponse);
 }

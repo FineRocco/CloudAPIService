@@ -9,14 +9,16 @@ from grpc_interceptor import ExceptionToStatusInterceptor
 from grpc_interceptor.exceptions import NotFound
 from jobreviews_pb2 import CalculateRatingRequest, JobReview
 from jobreviews_pb2_grpc import JobReviewServiceStub
-from data_access_pb2 import JobPostingsRequestWithTitle, JobPostingsRequestWithTitleAndCity, JobPostingsRequest, CompaniesRequest, PostJobRequest
+from data_access_pb2 import JobPostingsRequestWithTitle, JobPostingsRequestWithTitleAndCity, JobPostingsRequest, CompaniesRequest, PostJobRequest, RemoteJobSearchRequest
 from data_access_pb2_grpc import DataAccessServiceStub
 from jobpostings_pb2 import (
     Job,
     JobWithRating,
+    JobForRemote,
     AverageSalaryResponse,
     JobsWithRatingResponse,
     JobPostingsForLargestCompaniesResponse,
+    RemoteJobSearchResponse,
     JobAddResponse
 )
 
@@ -202,6 +204,29 @@ class JobPostingService(jobpostings_pb2_grpc.JobPostingServiceServicer):
                 status=500
             )
         
+    def GetRemoteJobs(self, request, context):
+        search_request = RemoteJobSearchRequest(
+            city=request.city if request.city else "",
+            keyword=request.keyword if request.keyword else "",
+            company=request.company if request.company else ""
+        )
+        
+        jobPostingsResponse = data_access_client.GetRemoteJobs(search_request)
+        
+        converted_jobs = [
+            JobForRemote(
+                id=str(job.id),
+                title=job.title,
+                company=job.company,
+                description=job.description,
+                location=job.location,
+                remote_allowed=job.remote_allowed
+            )
+        for job in jobPostingsResponse.jobs
+        ]
+
+        return RemoteJobSearchResponse(jobs=converted_jobs)
+
 def serve():
     interceptors = [ExceptionToStatusInterceptor()]
     server = grpc.server(

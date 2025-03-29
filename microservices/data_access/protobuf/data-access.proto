@@ -39,6 +39,15 @@ message JobForLargestCompany {
   double med_salary = 6;
 }
 
+message JobForRemote {
+  int64 id = 1;
+  string title = 2;
+  string company = 3;
+  string description = 4;
+  string location = 5;
+  bool remote_allowed = 6;
+}
+
 // Message representing a review record.
 message Review {
   string firm = 2;
@@ -149,6 +158,16 @@ message PostJobRequest {
   string location = 5;
 }
 
+message RemoteJobSearchRequest {
+  string city = 1;
+  string keyword = 2;
+  string company = 3;
+}
+
+message RemoteJobSearchResponse {
+  repeated JobForRemote jobs = 1;
+}
+
 // Service definition exposing the data access methods.
 service DataAccessService {
   rpc GetJobPostingsWithTitle (JobPostingsRequestWithTitle) returns (JobPostingsResponse);
@@ -160,4 +179,5 @@ service DataAccessService {
   rpc GetCompaniesWithEmployees (CompaniesRequest) returns (CompaniesResponse);
   rpc UpdateJobReview (UpdateJobReviewRequest) returns (UpdateJobReviewResponse);
   rpc PostJobInDB (PostJobRequest) returns (PostJobResponse);
+  rpc GetRemoteJobs(RemoteJobSearchRequest) returns (RemoteJobSearchResponse);
 }

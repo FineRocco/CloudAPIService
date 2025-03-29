@@ -2,7 +2,7 @@ import os
 import grpc
 from flask import Flask, request, jsonify
 from jobreviews_pb2 import BestCompaniesRequest, UpdateJobReviewRequest,CreateReviewRequest, ReviewinJob, BestCityRequest
-from jobpostings_pb2 import AverageSalaryRequest, JobPostingsForLargestCompaniesRequest, JobsWithRatingRequest, JobAddRequest
+from jobpostings_pb2 import AverageSalaryRequest, JobPostingsForLargestCompaniesRequest, JobsWithRatingRequest, JobAddRequest, RemoteJobSearchRequest
 from jobpostings_pb2_grpc import JobPostingServiceStub
 from jobreviews_pb2_grpc import JobReviewServiceStub
 
@@ -258,6 +258,34 @@ def update_review():
             "success": False, 
             "message": f"Internal server error: {str(e)}"
         }), 500
+
+@app.route("/jobs/search/remote", methods=["GET"])
+def render_remoteJobs():
+    
+    company = request.args.get("company", "")
+    city = request.args.get("city", "")
+    keyword = request.args.get("keyword", "")
+
+    if not company and not city and not keyword:
+        return jsonify({"error": "Keyword, city or company are required"}), 400
+
+    remoteJobsRequest = RemoteJobSearchRequest(company=company, city=city, keyword=keyword)
+    remoteJobsResponse = job_postings_client.GetRemoteJobs(remoteJobsRequest)
+    
+    jobs = []
+    for job in remoteJobsResponse.jobs:
+        jobs.append({
+            "id": job.id,
+            "company": job.company,
+            "title": job.title,
+            "description": job.description,
+            "location": job.location,
+            "remote_allowed": job.remote_allowed
+        })
+    
+    return jsonify({
+        "jobs": jobs
+    }),200
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8082)
