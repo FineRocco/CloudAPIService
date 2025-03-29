@@ -46,6 +46,11 @@ message JobPostingsForLargestCompaniesResponse {
   repeated JobForLargestCompany job = 1;
 }
 
+message BestCompany{
+  float average_salary = 1;
+  string company_name = 2;
+}
+
 // -----------------------------
 // Average Salary Messages
 // -----------------------------
@@ -101,6 +106,18 @@ message RemoteJobSearchResponse {
 }
 
 // -----------------------------
+// Best Paying Companies Message
+// -----------------------------
+
+message BestPayingCompaniesRequest{
+  string title = 1;
+}
+
+message BestPayingCompaniesResponse{
+  repeated BestCompany companies = 1;
+}
+
+// -----------------------------
 // Service Definition
 // -----------------------------
 
@@ -111,4 +128,5 @@ service JobPostingService {
   rpc GetJobPostingsForLargestCompanies (JobPostingsForLargestCompaniesRequest) returns (JobPostingsForLargestCompaniesResponse);
   rpc AddJob(JobAddRequest) returns (JobAddResponse);
   rpc GetRemoteJobs(RemoteJobSearchRequest) returns (RemoteJobSearchResponse);
+  rpc GetBestPayingCompanies(BestPayingCompaniesRequest) returns (BestPayingCompaniesResponse);
 }
