@@ -25,7 +25,7 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
         try:
             conn = psycopg2.connect(**DB_CONFIG)
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-            cursor.execute("SELECT * FROM jobs WHERE title = %s", (request.title,))
+            cursor.execute("SELECT * FROM jobs WHERE title LIKE %s", (f"%{request.title}%",))
             rows = cursor.fetchall()
 
             # Transform rows into Job objects.
@@ -68,8 +68,8 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
     def GetJobPostingsWithTitleAndCity(self, request, context):
         try:
             conn = psycopg2.connect(**DB_CONFIG)
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)  # Permite acessar colunas pelo nome
-            cursor.execute("SELECT * FROM jobs WHERE title = %s AND location = %s", (request.title,request.city,))
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            cursor.execute("SELECT * FROM jobs WHERE title LIKE %s AND location LIKE %s", (f"%{request.title}%", f"%{request.city}%",))
             rows = cursor.fetchall()
 
             job_postings = [
@@ -255,8 +255,8 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
             conn = psycopg2.connect(**DB_CONFIG)
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)  # Permite acessar colunas pelo nome
             cursor.execute(
-                "SELECT * FROM reviews WHERE TRIM(job_title) = %s AND TRIM(location) = %s",
-                (request.title, request.city,)
+                "SELECT * FROM reviews WHERE TRIM(job_title) LIKE %s AND TRIM(location) LIKE %s",
+                (f"%{request.title}%", f"%{request.city}%",)
             )
             rows = cursor.fetchall()
             reviews = [

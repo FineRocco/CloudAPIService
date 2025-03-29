@@ -122,10 +122,10 @@ def render_jobsWithRating():
 
     jobsWithRating_response = job_postings_client.JobsWithRating(
         jobsWithRating_request
-    )
+    )   
     
     jobs = [
-        {"title": job.job.title, "company": job.job.company_name, "description": job.job.description, "location": job.job.location, "views": job.job.views, "rating": job.rating}
+        {"title": job.job.title, "company": job.job.company_name, "salary": job.job.salary, "location": job.job.location, "views": job.job.views, "rating": job.rating, "description": job.job.description,}
         for job in jobsWithRating_response.jobs
     ]
     

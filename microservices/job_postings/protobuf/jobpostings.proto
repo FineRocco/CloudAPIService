@@ -10,6 +10,7 @@ message Job {
   string description = 4;
   string location = 5;
   int32 views = 6; // Defaults to 0 if not provided.
+  int32 salary = 7; // Defaults to 0 if not provided.
 }
 
 message JobForRemote {

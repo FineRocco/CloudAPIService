@@ -70,7 +70,8 @@ class JobPostingService(jobpostings_pb2_grpc.JobPostingServiceServicer):
                 company_name=str(job.company),
                 description=str(job.description),
                 location=str(job.location),
-                views=int(job.views)
+                views=int(job.views),
+                salary=int(job.normalized_salary)
             )
 
             
@@ -92,7 +93,8 @@ class JobPostingService(jobpostings_pb2_grpc.JobPostingServiceServicer):
                         company_name=str(job_with_rating.job.company_name),
                         description=str(job_with_rating.job.description),
                         location=str(job_with_rating.job.location),
-                        views=int(job_with_rating.job.views)
+                        views=int(job_with_rating.job.views),
+                        salary=int(job_with_rating.job.salary)
                     )
                 )
                 jobsWithRatings.append(jobWithRating)

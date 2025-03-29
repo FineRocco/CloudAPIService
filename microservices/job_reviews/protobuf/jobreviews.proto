@@ -10,6 +10,7 @@ message JobReview {
   string description = 4;
   string location = 5;
   int32 views = 6; // Defaults to 0 if not provided.
+  int32 salary = 7; // Defaults to 0 if not provided.
 }
 
 // Represents a company and its reviews.
@@ -36,6 +37,7 @@ message UpdateJobReviewResponse {
 
 // Message representing a review record.
 message ReviewinJob {
+  int32 id = 1;
   string firm = 2;
   string job_title = 3;
   string current = 4;

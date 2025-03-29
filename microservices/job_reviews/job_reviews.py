@@ -63,14 +63,15 @@ class JobReviewService(jobreviews_pb2_grpc.JobReviewServiceServicer):
             overall_rating = jobRatingTotal / count if count > 0 else 0
             
             jobWithRating = JobWithRating(
-                rating=int(overall_rating),  # Assuming the rating is an integer
+                rating=int(round(overall_rating)),  # Assuming the rating is an integer
                 job= JobReview (
                     id=str(job.id), 
                     title=str(job.title),
                     company_name=str(job.company_name),
                     description=str(job.description),
                     location=str(job.location),
-                    views=int(job.views)
+                    views=int(job.views),
+                    salary=int(job.salary)
                 )
             )
             

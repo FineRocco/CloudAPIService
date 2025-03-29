@@ -50,6 +50,7 @@ message JobForRemote {
 
 // Message representing a review record.
 message Review {
+  int32 id = 1;
   string firm = 2;
   string job_title = 3;
   string current = 4;
