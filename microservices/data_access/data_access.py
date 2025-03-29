@@ -10,7 +10,7 @@ import data_access_pb2_grpc
 import data_access_pb2
 from grpc_interceptor import ExceptionToStatusInterceptor
 from grpc_interceptor.exceptions import NotFound
-from data_access_pb2 import Job, Review, JobForLargestCompany, JobPostingsResponse, JobReviewsResponse, CompaniesResponse, UpdateJobReviewResponse, JobPostingsForLargestCompaniesResponse, CreateReviewResponse, PostJobResponse
+from data_access_pb2 import Job, Review, JobForLargestCompany, RemoteJobSearchResponse, JobForRemote, JobPostingsResponse, JobReviewsResponse, CompaniesResponse, UpdateJobReviewResponse, JobPostingsForLargestCompaniesResponse, CreateReviewResponse, PostJobResponse
 
 DB_CONFIG = {
     "dbname": "mydatabase",
@@ -393,6 +393,65 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
             if not cursor.fetchone():
                 return new_id
         
+    def GetRemoteJobs(self, request, context):
+        try:
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+            query = """
+            SELECT job_id, title, company, description, location, views, remote_allowed
+            FROM jobs
+            WHERE remote_allowed = TRUE
+            """
+
+            filters = []
+            params = []
+
+            if request.city and isinstance(request.city, str):
+                filters.append("location ILIKE %s")
+                params.append(f"%{request.city.strip()}%")
+
+            if request.keyword and isinstance(request.keyword, str):
+                filters.append("(title ILIKE %s OR description ILIKE %s)")
+                params.append(f"%{request.keyword.strip()}%")
+                params.append(f"%{request.keyword.strip()}%")
+
+            if request.company and isinstance(request.company, str):
+                filters.append("company ILIKE %s")
+                params.append(f"%{request.company.strip()}%")
+
+            if filters:
+                query += " AND " + " AND ".join(filters)
+
+            print("Executing Query:", query)
+            print("Params:", params)
+
+            cursor.execute(query, tuple(params))
+            rows = cursor.fetchall()
+
+            job_postings = []
+            for row in rows:
+                job_obj = JobForRemote(
+                    id=row["job_id"],
+                    title=row["title"] or "",
+                    company=row["company"] or "",
+                    description=row["description"] or "",
+                    location=row["location"] or "",
+                    remote_allowed=bool(row["remote_allowed"])
+                )
+                job_postings.append(job_obj)
+
+            cursor.close()
+            conn.close()
+
+            return RemoteJobSearchResponse(jobs=job_postings)
+
+        except Exception as e:
+            print(f"Database query error: {str(e)}")
+            context.set_details(f"Database query failed: {str(e)}")
+            context.set_code(grpc.StatusCode.INTERNAL)
+            return RemoteJobSearchResponse(jobs=[])
+
 def serve():
     interceptors = [ExceptionToStatusInterceptor()]
     server = grpc.server(
