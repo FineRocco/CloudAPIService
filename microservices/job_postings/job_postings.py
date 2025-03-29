@@ -9,7 +9,7 @@ from grpc_interceptor import ExceptionToStatusInterceptor
 from grpc_interceptor.exceptions import NotFound
 from jobreviews_pb2 import CalculateRatingRequest, JobReview
 from jobreviews_pb2_grpc import JobReviewServiceStub
-from data_access_pb2 import JobPostingsRequestWithTitle, JobPostingsRequestWithTitleAndCity, JobPostingsRequest, CompaniesRequest, PostJobRequest, RemoteJobSearchRequest
+from data_access_pb2 import JobPostingsRequestWithTitle, JobPostingsRequestWithTitleAndCity, BestPayingCompaniesRequest, JobPostingsRequest, CompaniesRequest, PostJobRequest, RemoteJobSearchRequest
 from data_access_pb2_grpc import DataAccessServiceStub
 from jobpostings_pb2 import (
     Job,
@@ -18,6 +18,7 @@ from jobpostings_pb2 import (
     AverageSalaryResponse,
     JobsWithRatingResponse,
     JobPostingsForLargestCompaniesResponse,
+    BestPayingCompaniesResponse,
     RemoteJobSearchResponse,
     JobAddResponse
 )
@@ -228,6 +229,25 @@ class JobPostingService(jobpostings_pb2_grpc.JobPostingServiceServicer):
         ]
 
         return RemoteJobSearchResponse(jobs=converted_jobs)
+    
+    def GetBestPayingCompanies(self, request, context):
+
+        best_paying_request = BestPayingCompaniesRequest(title=request.title)
+
+        try:
+            best_paying_response = data_access_client.GetBestPayingCompanies(best_paying_request)
+
+            companies = []
+            for company in best_paying_response.companies:
+                companies.append({
+                    "company_name": company.company_name,
+                    "average_salary": company.average_salary
+                })
+
+            return BestPayingCompaniesResponse(companies=companies)
+
+        except grpc.RpcError as e:
+            raise Exception(f"Error fetching best paying companies from DataAccess: {e}")
 
 def serve():
     interceptors = [ExceptionToStatusInterceptor()]

@@ -76,6 +76,11 @@ message Company {
   int32 follower_count = 3;
 }
 
+message BestCompany{
+  float average_salary = 1;
+  string company_name = 2;
+}
+
 // -----------------------------
 // Requests and Responses
 // -----------------------------
@@ -169,6 +174,14 @@ message RemoteJobSearchResponse {
   repeated JobForRemote jobs = 1;
 }
 
+message BestPayingCompaniesRequest{
+  string title = 1;
+}
+
+message BestPayingCompaniesResponse{
+  repeated BestCompany companies = 1;
+}
+
 // Service definition exposing the data access methods.
 service DataAccessService {
   rpc GetJobPostingsWithTitle (JobPostingsRequestWithTitle) returns (JobPostingsResponse);
@@ -182,4 +195,5 @@ service DataAccessService {
   rpc UpdateJobReview (UpdateJobReviewRequest) returns (UpdateJobReviewResponse);
   rpc PostJobInDB (PostJobRequest) returns (PostJobResponse);
   rpc GetRemoteJobs(RemoteJobSearchRequest) returns (RemoteJobSearchResponse);
+  rpc GetBestPayingCompanies(BestPayingCompaniesRequest) returns (BestPayingCompaniesResponse);
 }

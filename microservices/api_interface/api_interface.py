@@ -2,7 +2,7 @@ import os
 import grpc
 from flask import Flask, request, jsonify
 from jobreviews_pb2 import BestCompaniesRequest, UpdateJobReviewRequest,CreateReviewRequest, ReviewinJob, BestCityRequest
-from jobpostings_pb2 import AverageSalaryRequest, JobPostingsForLargestCompaniesRequest, JobsWithRatingRequest, JobAddRequest, RemoteJobSearchRequest
+from jobpostings_pb2 import AverageSalaryRequest, BestPayingCompaniesRequest, JobPostingsForLargestCompaniesRequest, JobsWithRatingRequest, JobAddRequest, RemoteJobSearchRequest
 from jobpostings_pb2_grpc import JobPostingServiceStub
 from jobreviews_pb2_grpc import JobReviewServiceStub
 
@@ -286,6 +286,33 @@ def render_remoteJobs():
     return jsonify({
         "jobs": jobs
     }),200
+
+@app.route('/jobs/search/best-paying-companies', methods=['GET'])
+def render_best_paying_companies():
+    job_title = request.args.get('title')
+
+    if not job_title:
+        return jsonify({"error": "Job title is required"}), 400
+
+    try:
+
+        best_paying_request = BestPayingCompaniesRequest(title=job_title)
+
+        best_paying_response = job_postings_client.GetBestPayingCompanies(best_paying_request)
+
+        companies = []
+        for company in best_paying_response.companies:
+            companies.append({
+                "company_name": company.company_name,
+                "average_salary": company.average_salary
+            })
+
+        return jsonify({
+            "best_paying_companies": companies
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Error fetching best paying companies: {str(e)}"}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8082)

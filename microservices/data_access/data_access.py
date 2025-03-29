@@ -10,7 +10,7 @@ import data_access_pb2_grpc
 import data_access_pb2
 from grpc_interceptor import ExceptionToStatusInterceptor
 from grpc_interceptor.exceptions import NotFound
-from data_access_pb2 import Job, Review, JobForLargestCompany, RemoteJobSearchResponse, JobForRemote, JobPostingsResponse, JobReviewsResponse, CompaniesResponse, UpdateJobReviewResponse, JobPostingsForLargestCompaniesResponse, CreateReviewResponse, PostJobResponse
+from data_access_pb2 import Job, Review, JobForLargestCompany, BestCompany, BestPayingCompaniesResponse, RemoteJobSearchResponse, JobForRemote, JobPostingsResponse, JobReviewsResponse, CompaniesResponse, UpdateJobReviewResponse, JobPostingsForLargestCompaniesResponse, CreateReviewResponse, PostJobResponse
 
 DB_CONFIG = {
     "dbname": "mydatabase",
@@ -451,6 +451,48 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
             context.set_details(f"Database query failed: {str(e)}")
             context.set_code(grpc.StatusCode.INTERNAL)
             return RemoteJobSearchResponse(jobs=[])
+
+    def GetBestPayingCompanies(self, request, context):
+
+        job_title = request.title
+
+        if not job_title:
+            context.set_details("Job title is required")
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            return BestPayingCompaniesResponse()
+
+        try:
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+            query = """
+            SELECT company, AVG(max_salary) as average_salary
+            FROM jobs
+            WHERE title = %s AND pay_period = 'YEARLY'
+            GROUP BY company
+            ORDER BY average_salary DESC
+            """
+
+            cursor.execute(query, (job_title,))
+            rows = cursor.fetchall()
+
+            companies = []
+            for row in rows:
+                company = BestCompany(
+                    company_name=row["company"],
+                    average_salary=row["average_salary"]
+                )
+                companies.append(company)
+
+            cursor.close()
+            conn.close()
+
+            return BestPayingCompaniesResponse(companies=companies)
+
+        except Exception as e:
+            context.set_details(f"Database query failed: {str(e)}")
+            context.set_code(grpc.StatusCode.INTERNAL)
+            return BestPayingCompaniesResponse()    
 
 def serve():
     interceptors = [ExceptionToStatusInterceptor()]
