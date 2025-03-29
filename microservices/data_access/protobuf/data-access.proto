@@ -156,6 +156,7 @@ service DataAccessService {
   rpc GetJobReviewsWithTitleAndCity (JobReviewRequestWithTitleAndCity) returns (JobReviewsResponse);
   rpc CreateReview (CreateReviewRequest) returns (CreateReviewResponse);
   rpc GetJobReviewsForCompanyReview (JobReviewsRequest) returns (JobReviewsResponse);
+  rpc GetJobReviewsForLocationReview (JobReviewsRequest) returns (JobReviewsResponse);
   rpc GetJobPostingsForLargestCompanies (JobPostingsRequest) returns (JobPostingsForLargestCompaniesResponse);
   rpc GetCompaniesWithEmployees (CompaniesRequest) returns (CompaniesResponse);
   rpc UpdateJobReview (UpdateJobReviewRequest) returns (UpdateJobReviewResponse);

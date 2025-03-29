@@ -196,6 +196,34 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
             return JobReviewsResponse(review=reviews)
         except Exception as e:
             return JobReviewsResponse(review=[])
+    def GetJobReviewsForLocationReview(self, request, context):
+        try:
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            cursor.execute(
+                "SELECT * FROM reviews LIMIT %s OFFSET %s", 
+                (request.limit, request.offset)
+            )
+            rows = cursor.fetchall()
+            
+            reviews = [
+                Review(
+                    location=row["location"],
+                    overall_rating=row["overall_rating"] if row["overall_rating"] is not None else 0,
+                    work_life_balance=row["work_life_balance"] if row["work_life_balance"] is not None else 0.0,
+                    culture_values=row["culture_values"] if row["culture_values"] is not None else 0.0,
+                    diversity_inclusion=row["diversity_inclusion"] if row["diversity_inclusion"] is not None else 0.0,
+                    career_opp=row["career_opp"] if row["career_opp"] is not None else 0.0,
+                    comp_benefits=row["comp_benefits"] if row["comp_benefits"] is not None else 0.0,
+                    senior_mgmt=row["senior_mgmt"] if row["senior_mgmt"] is not None else 0.0,
+                )
+                for row in rows
+            ]
+            cursor.close()
+            conn.close()
+            return JobReviewsResponse(review=reviews)
+        except Exception as e:
+            return JobReviewsResponse(review=[])
 
     def UpdateJobReview(self, request, context):
         try:

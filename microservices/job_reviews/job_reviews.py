@@ -1,6 +1,5 @@
 import random, os
 from concurrent import futures
-
 import grpc
 import jobreviews_pb2_grpc
 import jobreviews_pb2
@@ -250,7 +249,7 @@ class JobReviewService(jobreviews_pb2_grpc.JobReviewServiceServicer):
                 limit=limit,
                 offset=offset
             )
-            jobReviewsResponse = data_access_client.GetJobReviewsForCompanyReview(paginatedRequest)
+            jobReviewsResponse = data_access_client.GetJobReviewsForLocationReview(paginatedRequest)
             batch_reviews = jobReviewsResponse.review
             if not batch_reviews:
                 break
