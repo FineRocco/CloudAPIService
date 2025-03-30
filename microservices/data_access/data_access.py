@@ -10,7 +10,7 @@ import data_access_pb2_grpc
 import data_access_pb2
 from grpc_interceptor import ExceptionToStatusInterceptor
 from grpc_interceptor.exceptions import NotFound
-from data_access_pb2 import Job, Review, JobForLargestCompany, BestCompany, BestPayingCompaniesResponse, RemoteJobSearchResponse, JobForRemote, JobPostingsResponse, JobReviewsResponse, CompaniesResponse, UpdateJobReviewResponse, JobPostingsForLargestCompaniesResponse, CreateReviewResponse, PostJobResponse
+from data_access_pb2 import Job, Review, JobForLargestCompany, BestCompany, BestPayingCompaniesResponse, DeleteReviewResponse, RemoteJobSearchResponse, JobForRemote, JobPostingsResponse, JobReviewsResponse, CompaniesResponse, UpdateJobReviewResponse, JobPostingsForLargestCompaniesResponse, CreateReviewResponse, PostJobResponse
 
 DB_CONFIG = {
     "dbname": "mydatabase",
@@ -492,7 +492,35 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
         except Exception as e:
             context.set_details(f"Database query failed: {str(e)}")
             context.set_code(grpc.StatusCode.INTERNAL)
-            return BestPayingCompaniesResponse()    
+            return BestPayingCompaniesResponse()
+        
+    def DeleteReview(self, request, context):
+        try:
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor()
+
+            cursor.execute("SELECT COUNT(*) FROM reviews WHERE id = %s", (request.review_id,))
+            count = cursor.fetchone()[0]
+
+            if count == 0:
+                cursor.close()
+                conn.close()
+                context.set_code(grpc.StatusCode.NOT_FOUND)
+                context.set_details("Review not found")
+                return DeleteReviewResponse(success=False, message="Review not found")
+
+            cursor.execute("DELETE FROM reviews WHERE id = %s", (request.review_id,))
+            conn.commit()
+
+            cursor.close()
+            conn.close()
+
+            return DeleteReviewResponse(success=True, message="Review deleted successfully")
+
+        except Exception as e:
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(f"Error deleting Review: {str(e)}")
+            return DeleteReviewResponse(success=False, message="Error deleting Review")
 
 def serve():
     interceptors = [ExceptionToStatusInterceptor()]

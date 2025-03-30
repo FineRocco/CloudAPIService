@@ -182,6 +182,15 @@ message BestPayingCompaniesResponse{
   repeated BestCompany companies = 1;
 }
 
+message DeleteReviewRequest {
+  string review_id = 1;
+}
+
+message DeleteReviewResponse {
+  bool success = 1;
+  string message = 2;
+}
+
 // Service definition exposing the data access methods.
 service DataAccessService {
   rpc GetJobPostingsWithTitle (JobPostingsRequestWithTitle) returns (JobPostingsResponse);
@@ -196,4 +205,5 @@ service DataAccessService {
   rpc PostJobInDB (PostJobRequest) returns (PostJobResponse);
   rpc GetRemoteJobs(RemoteJobSearchRequest) returns (RemoteJobSearchResponse);
   rpc GetBestPayingCompanies(BestPayingCompaniesRequest) returns (BestPayingCompaniesResponse);
+  rpc DeleteReview(DeleteReviewRequest) returns(DeleteReviewResponse);
 }

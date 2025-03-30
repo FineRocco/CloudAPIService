@@ -1,8 +1,8 @@
 import os
 import grpc
 from flask import Flask, request, jsonify
-from jobreviews_pb2 import BestCompaniesRequest, UpdateJobReviewRequest,CreateReviewRequest, ReviewinJob, BestCityRequest
-from jobpostings_pb2 import AverageSalaryRequest, BestPayingCompaniesRequest, JobPostingsForLargestCompaniesRequest, JobsWithRatingRequest, JobAddRequest, RemoteJobSearchRequest
+from jobreviews_pb2 import BestCompaniesRequest, UpdateJobReviewRequest,DeleteReviewRequest,CreateReviewRequest, ReviewinJob, BestCityRequest
+from jobpostings_pb2 import AverageSalaryRequest, BestPayingCompaniesRequest,  JobPostingsForLargestCompaniesRequest, JobsWithRatingRequest, JobAddRequest, RemoteJobSearchRequest
 from jobpostings_pb2_grpc import JobPostingServiceStub
 from jobreviews_pb2_grpc import JobReviewServiceStub
 
@@ -313,6 +313,35 @@ def render_best_paying_companies():
 
     except Exception as e:
         return jsonify({"error": f"Error fetching best paying companies: {str(e)}"}), 500
+
+
+@app.route('/reviews', methods=['DELETE'])
+def render_delete_job_review():
+
+    review_id = request.args.get('review_id')
+
+    if not review_id:
+        return jsonify({"error": "Review id is required"}), 400
+
+    try:
+
+        delete_review_request = DeleteReviewRequest(review_id=review_id)
+
+        delete_response= job_reviews_client.DeleteReview(delete_review_request)
+
+        delete_response1 = []
+        delete_response1.append({
+            "success": delete_response.success,
+            "message": delete_response.message
+        })
+
+
+        return jsonify({
+            "Response": delete_response1
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Error deleting review: {str(e)}"}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8082)

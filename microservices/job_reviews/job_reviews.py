@@ -5,7 +5,7 @@ import jobreviews_pb2_grpc
 import jobreviews_pb2
 from grpc_interceptor import ExceptionToStatusInterceptor
 from grpc_interceptor.exceptions import NotFound
-from data_access_pb2 import JobReviewRequestWithTitleAndCity, CreateReviewRequest, Review, JobReviewsRequest, UpdateJobReviewRequest
+from data_access_pb2 import JobReviewRequestWithTitleAndCity, DeleteReviewRequest, CreateReviewRequest, Review, JobReviewsRequest, UpdateJobReviewRequest
 from data_access_pb2_grpc import DataAccessServiceStub
 from jobreviews_pb2 import (
     JobReview,
@@ -15,7 +15,8 @@ from jobreviews_pb2 import (
     BestCompaniesResponse,
     UpdateJobReviewResponse,
     BestRatingCity,
-    BestCityResponse
+    BestCityResponse,
+    DeleteReviewResponse
 )
 
 data_access_host = os.getenv("DATAACCESSHOST", "data-access")
@@ -303,6 +304,18 @@ class JobReviewService(jobreviews_pb2_grpc.JobReviewServiceServicer):
         else:
             
             return BestCityResponse(city=[])
+        
+
+    def DeleteReview(self, request, context):
+        delete_request = DeleteReviewRequest(review_id=request.review_id)
+
+        try:
+            delete_response = data_access_client.DeleteReview(delete_request)
+            return DeleteReviewResponse(success=delete_response.success, message=delete_response.message)
+        except grpc.RpcError as e:
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(f"Error deleting review: {e}")
+            return DeleteReviewResponse(success=False, message="Error deleting review")
 
         
 def serve():

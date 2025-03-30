@@ -105,6 +105,19 @@ message CreateReviewResponse {
 }
 
 // -----------------------------
+// Delete Review
+// -----------------------------
+
+message DeleteReviewRequest {
+  string review_id = 1;
+}
+
+message DeleteReviewResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// -----------------------------
 // Service Definition
 // -----------------------------
 
@@ -114,4 +127,5 @@ service JobReviewService {
   rpc GetBestCompanies(BestCompaniesRequest) returns (BestCompaniesResponse);
   rpc UpdateJobReview(UpdateJobReviewRequest) returns (UpdateJobReviewResponse);
   rpc BestCity(BestCityRequest) returns (BestCityResponse);
+  rpc DeleteReview(DeleteReviewRequest) returns(DeleteReviewResponse);
 }
