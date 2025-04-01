@@ -24,7 +24,7 @@ jobreviews_channel = grpc.insecure_channel(f"{jobreviews_host}:50051", options=[
 ])
 job_reviews_client = JobReviewServiceStub(jobreviews_channel)
 
-@app.route("/averageSalary", methods=["GET"])
+@app.route("/jobs/search/average-salary", methods=["GET"])
 def render_homepage():
     title = request.args.get("title", "")
     
@@ -44,7 +44,7 @@ def render_homepage():
 
 
 
-@app.route("/location", methods=["GET"])
+@app.route("/jobs/search/best-cities", methods=["GET"])
 def render_location():
     cities_request = BestCityRequest()
     cities_response = job_reviews_client.BestCity(cities_request)
@@ -61,7 +61,7 @@ def render_location():
     return jsonify({"cities": city_list}), 200
     
     
-@app.route("/AddJob", methods=["POST"])
+@app.route("/jobs/post/job-posting", methods=["POST"])
 def render_AddJob():
     
     data = request.get_json()
@@ -108,7 +108,7 @@ def render_AddJob():
         }
     }), job_response.status
     
-@app.route("/jobsWithRating", methods=["GET"])
+@app.route("/jobs/search/jobs-with-rating", methods=["GET"])
 def render_jobsWithRating():
     title = request.args.get("title", "")
     city = request.args.get("city", "")
@@ -131,7 +131,7 @@ def render_jobsWithRating():
     
     return jsonify({"jobs": jobs}), 200
     
-@app.route("/addJobReview", methods=["POST"])
+@app.route("/jobs/post/review-posting", methods=["POST"])
 def render_addJobReview():
     data = request.get_json()
 
@@ -171,7 +171,7 @@ def render_addJobReview():
     
     return jsonify({"success": createJobReview_response.success}), 200
 
-@app.route("/bestCompanies", methods=["GET"])
+@app.route("/jobs/search/best-companies", methods=["GET"])
 def render_bestCompanies():
     bestCompanies_request = BestCompaniesRequest()
     bestCompanies_response = job_reviews_client.GetBestCompanies(bestCompanies_request)
@@ -192,7 +192,7 @@ def render_bestCompanies():
         "bestCompanies": companies
     }),200
 
-@app.route("/jobsForLargestCompanies", methods=["GET"])
+@app.route("/jobs/search/jobs-in-biggest-companies", methods=["GET"])
 def render_jobsForLargestCompanies():
     jobsForLargestCompanies_request = JobPostingsForLargestCompaniesRequest()
     jobsForLargestCompanies_response = job_postings_client.GetJobPostingsForLargestCompanies(jobsForLargestCompanies_request)
@@ -213,7 +213,7 @@ def render_jobsForLargestCompanies():
         "jobs": jobs
     }),200
 
-@app.route("/updateReview", methods=["PUT"])
+@app.route("/jobs/put/review-update", methods=["PUT"])
 def update_review():
     # If it's a GET request, just render the empty form
     if request.method == "GET":
@@ -315,7 +315,7 @@ def render_best_paying_companies():
         return jsonify({"error": f"Error fetching best paying companies: {str(e)}"}), 500
 
 
-@app.route('/reviews', methods=['DELETE'])
+@app.route('/jobs/delete/review-deletion', methods=['DELETE'])
 def render_delete_job_review():
 
     review_id = request.args.get('review_id')
