@@ -62,3 +62,8 @@ http://localhost:8082/jobs/put/review-update
 http://localhost:8082/jobs/delete/review-deletion
 ```
 
+## Observations:
+
+1. The gRPC channels have a default limit of 4Mb capacity per call. Some use cases upgraded it to 10Mb but the data transfering from the microservice "Data-access" to the others is still slow because of datasets's size.
+2. The datasets had empty data in some columns, we edited them so it could work in our project.
+3. Also we added a primary unique key in the reviews dataset so it could be associated with the other dataset.
