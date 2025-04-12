@@ -1,0 +1,10 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+    'build',
+    '-t', 'europe-west1-docker.pkg.dev/projectcloud-451415/cloudapiservice/api_interface:latest', # Changed
+    '-f', 'api_interface/Dockerfile',  # Changed
+    '.'
+  ]
+images:
+- 'europe-west1-docker.pkg.dev/projectcloud-451415/cloudapiservice/api_interface:latest' # Changed

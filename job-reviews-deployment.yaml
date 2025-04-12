@@ -1,0 +1,74 @@
+# job-reviews-deployment.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: job-reviews-service
+  namespace: job-app
+  labels:
+    app: job-reviews
+spec:
+  ports:
+  - port: 50051
+    targetPort: grpc # Use a short, valid name (<= 15 chars)
+    protocol: TCP
+    name: grpc-svc-port
+  selector:
+    app: job-reviews
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: job-reviews-deployment
+  namespace: job-app
+  labels:
+    app: job-reviews
+spec:
+  replicas: 1 # Adjust as needed
+  selector:
+    matchLabels:
+      app: job-reviews
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  template:
+    metadata:
+      labels:
+        app: job-reviews
+    spec:
+      # No specific serviceAccountName needed
+      containers:
+      - name: job-reviews
+        # !!! ACTION REQUIRED: Replace with your actual image path !!!
+        image: europe-west1-docker.pkg.dev/projectcloud-451415/cloudapiservice/job_reviews:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 50051 # The actual port your app listens on (from compose 8084:50051)
+          name: grpc # The short name referenced by Service and Probes
+        env:
+          # Use K8s Service name for dependency from compose env
+          - name: DATA_ACCESS_HOST
+            value: "data-access-service"
+        # Add placeholder resources - ADJUST!
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "250m"
+        # Add placeholder probes - ADJUST! Use grpc_health_probe if possible
+        livenessProbe:
+          tcpSocket: { port: grpc }
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          tcpSocket: { port: grpc }
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        startupProbe:
+          tcpSocket: { port: grpc }
+          failureThreshold: 30
+          periodSeconds: 10

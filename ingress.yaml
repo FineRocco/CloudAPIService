@@ -1,0 +1,24 @@
+# ingress.yaml (Basic HTTP)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-ingress      # Name for your Ingress resource
+  namespace: job-app    # Your application's namespace
+  # Annotations section removed
+spec:
+  # TLS section removed
+
+  # --- Routing Rules ---
+  rules:
+  - http: # Rule applies for HTTP traffic
+      paths:
+      # Route all traffic starting with /
+      - path: /
+        pathType: Prefix # Or ImplementationSpecific
+        backend:
+          service:
+            # Name of the Service to route traffic to
+            name: api-interface-service
+            port:
+              # Port NUMBER defined in that Service manifest
+              number: 80

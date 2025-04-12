@@ -24,6 +24,14 @@ jobreviews_channel = grpc.insecure_channel(f"{jobreviews_host}:50051", options=[
 ])
 job_reviews_client = JobReviewServiceStub(jobreviews_channel)
 
+@app.route("/readyz") # Or /healthz
+def readiness():
+  return "OK", 200
+
+@app.route("/healthz") # Good to have liveness too
+def liveness():
+  return "OK", 200
+
 @app.route("/jobs/search/average-salary", methods=["GET"])
 def render_homepage():
     title = request.args.get("title", "")
