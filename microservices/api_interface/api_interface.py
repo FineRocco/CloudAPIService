@@ -8,8 +8,8 @@ from jobreviews_pb2_grpc import JobReviewServiceStub
 
 app = Flask(__name__)
 
-jobreviews_host = os.getenv("JOBREVIEWSHOST", "job-reviews")
-jobpostings_host = os.getenv("JOBPOSTINSHOST", "job-postings")
+jobreviews_host = os.getenv("JOBREVIEWSHOST", "job-reviews-service")
+jobpostings_host = os.getenv("JOBPOSTINSHOST", "job-postings-service")
 
 # Create gRPC channels and stubs.
 jobpostings_channel = grpc.insecure_channel(f"{jobpostings_host}:50051", options=[

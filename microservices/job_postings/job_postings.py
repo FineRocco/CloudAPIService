@@ -23,8 +23,8 @@ from jobpostings_pb2 import (
     JobAddResponse
 )
 
-data_access_host = os.getenv("DATAACCESSHOST", "data-access")
-job_review_host = os.getenv("JOBREVIEWHOST", "job-reviews")
+data_access_host = os.getenv("DATA_ACCESS_HOST", "data-access-service")
+job_review_host = os.getenv("JOBREVIEWSHOST", "job-reviews-service")
 
 job_review_posting_channel = grpc.insecure_channel(f"{job_review_host}:50051")
 

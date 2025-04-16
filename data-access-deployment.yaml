@@ -109,7 +109,7 @@ spec:
           # Instance connection name from Cloud SQL instance page
           - "--structured-logs"
           - "--port=5432" # Port the proxy listens on (inside the pod)
-          - "projectcloud-451415:europe-west1:datasets" # !!! REPLACE !!!
+          - "projectcloud-451415:europe-west1:dataset" # !!! REPLACE !!!
         securityContext:
           runAsNonRoot: true # Recommended
         # Define Resources for the proxy - ADJUST!

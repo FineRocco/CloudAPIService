@@ -13,10 +13,10 @@ from grpc_interceptor.exceptions import NotFound
 from data_access_pb2 import Job, Review, JobForLargestCompany, BestCompany, BestPayingCompaniesResponse, DeleteReviewResponse, RemoteJobSearchResponse, JobForRemote, JobPostingsResponse, JobReviewsResponse, CompaniesResponse, UpdateJobReviewResponse, JobPostingsForLargestCompaniesResponse, CreateReviewResponse, PostJobResponse
 
 DB_CONFIG = {
-    "dbname": "mydatabase",
-    "user": "myuser",
-    "password": "mypassword",
-    "host": "postgres_db",  # Docker service name
+    "dbname": "postgres",
+    "user": "denis",
+    "password": "denis123",
+    "host": "127.0.0.1",  # Docker service name
     "port": "5432"
 }
 
