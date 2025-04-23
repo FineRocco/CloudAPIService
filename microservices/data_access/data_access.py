@@ -12,18 +12,42 @@ from grpc_interceptor import ExceptionToStatusInterceptor
 from grpc_interceptor.exceptions import NotFound
 from data_access_pb2 import Job, Review, JobForLargestCompany, BestCompany, BestPayingCompaniesResponse, DeleteReviewResponse, RemoteJobSearchResponse, JobForRemote, JobPostingsResponse, JobReviewsResponse, CompaniesResponse, UpdateJobReviewResponse, JobPostingsForLargestCompaniesResponse, CreateReviewResponse, PostJobResponse
 
-DB_CONFIG = {
-    "dbname": "postgres",
-    "user": "denis",
-    "password": "denis123",
-    "host": "127.0.0.1",  # Docker service name
-    "port": "5432"
-}
+def get_db_connection():
+    try:
+        db_host = os.environ.get("DB_HOST")
+        db_port = os.environ.get("DB_PORT")
+        db_name = os.environ.get("DB_NAME")
+        db_user = os.environ.get("DB_USER")
+        db_password = os.environ.get("DB_PASSWORD")
+
+        # Basic check to ensure variables are set
+        if not all([db_host, db_port, db_name, db_user, db_password]):
+             raise ValueError("Database environment variables are not set correctly.")
+
+        # psycopg2.connect expects port as an integer
+        db_port_int = int(db_port)
+
+        conn = psycopg2.connect(
+            dbname=db_name,
+            user=db_user,
+            password=db_password,
+            host=db_host,
+            port=db_port_int
+        )
+        return conn
+    except Exception as e:
+        print(f"Error connecting to database: {e}")
+        # Depending on your error handling strategy, you might re-raise
+        # or return None. For a gRPC service, letting it raise might
+        # be handled by the interceptor.
+        raise # Re-raise the exception
 
 class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
     def GetJobPostingsWithTitle(self, request, context):
+        conn = None # Initialize conn to None
+        cursor = None # Initialize cursor to None
         try:
-            conn = psycopg2.connect(**DB_CONFIG)
+            conn = get_db_connection()
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             cursor.execute("SELECT * FROM jobs WHERE title LIKE %s", (f"%{request.title}%",))
             rows = cursor.fetchall()
@@ -58,16 +82,24 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
                 )
                 for row in rows
             ]
-            cursor.close()
-            conn.close()
 
             return JobPostingsResponse(job=job_postings)
         except Exception as e:
-            return JobPostingsResponse(job=[])
+            print(f"Error in GetJobPostingsWithTitle: {e}")
+            # The interceptor might catch this, but returning empty on specific errors is also an option
+            return JobPostingsResponse(job=[]) # Return empty list on error
+        finally:
+            # Ensure cursor and connection are closed
+            if cursor is not None:
+                cursor.close()
+            if conn is not None:
+                conn.close()
         
     def GetJobPostingsWithTitleAndCity(self, request, context):
+        conn = None # Initialize conn to None
+        cursor = None # Initialize cursor to None
         try:
-            conn = psycopg2.connect(**DB_CONFIG)
+            conn = get_db_connection()
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             cursor.execute("SELECT * FROM jobs WHERE title LIKE %s AND location LIKE %s", (f"%{request.title}%", f"%{request.city}%",))
             rows = cursor.fetchall()
@@ -102,19 +134,25 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
                 for row in rows
             ]
 
-            cursor.close()
-            conn.close()
-
             return JobPostingsResponse(job=job_postings)
 
         except Exception as e:
-            print(f"Database error: {e}")
-            return JobPostingsResponse(job=[])
+            print(f"Error in GetJobPostingsWithTitleAndCity: {e}")
+            # The interceptor might catch this, but returning empty on specific errors is also an option
+            return JobPostingsResponse(job=[]) # Return empty list on error
+        finally:
+            # Ensure cursor and connection are closed
+            if cursor is not None:
+                cursor.close()
+            if conn is not None:
+                conn.close()
 
     def GetJobPostingsForLargestCompanies(self, request, context):
+        conn = None # Initialize conn to None
+        cursor = None # Initialize cursor to None
         try:
             # Connect to the database.
-            conn = psycopg2.connect(**DB_CONFIG)
+            conn = get_db_connection()
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             
             # Execute the SQL query.
@@ -141,17 +179,23 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
                 )
                 job_postings.append(job_obj)
             
-            # Close the cursor and connection.
-            cursor.close()
-            conn.close()
-            
             return JobPostingsForLargestCompaniesResponse(job=job_postings)
         except Exception as e:
-            return JobPostingsForLargestCompaniesResponse(job=[])
+            print(f"Error in GetJobPostingsForLargestCompanies: {e}")
+            # The interceptor might catch this, but returning empty on specific errors is also an option
+            return JobPostingsForLargestCompaniesResponse(job=[]) # Return empty list on error
+        finally:
+            # Ensure cursor and connection are closed
+            if cursor is not None:
+                cursor.close()
+            if conn is not None:
+                conn.close()
 
     def GetCompaniesWithEmployees(self, request, context):
+        conn = None # Initialize conn to None
+        cursor = None # Initialize cursor to None
         try:
-            conn = psycopg2.connect(**DB_CONFIG)
+            conn = get_db_connection()
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             cursor.execute("SELECT * FROM employee;")
             rows = cursor.fetchall()
@@ -168,11 +212,21 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
             conn.close()
             return CompaniesResponse(company=company)
         except Exception as e:
-            return CompaniesResponse(company=[])
+            print(f"Error in GetCompaniesWithEmployees: {e}")
+            # The interceptor might catch this, but returning empty on specific errors is also an option
+            return CompaniesResponse(company=[]) # Return empty list on error
+        finally:
+            # Ensure cursor and connection are closed
+            if cursor is not None:
+                cursor.close()
+            if conn is not None:
+                conn.close()
 
     def GetJobReviewsForCompanyReview(self, request, context):
+        conn = None # Initialize conn to None
+        cursor = None # Initialize cursor to None
         try:
-            conn = psycopg2.connect(**DB_CONFIG)
+            conn = get_db_connection()
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             cursor.execute(
                 "SELECT * FROM reviews LIMIT %s OFFSET %s", 
@@ -191,14 +245,24 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
                 )
                 for row in rows
             ]
-            cursor.close()
-            conn.close()
+
             return JobReviewsResponse(review=reviews)
         except Exception as e:
-            return JobReviewsResponse(review=[])
+            print(f"Error in GetJobReviewsForCompanyReview: {e}")
+            # The interceptor might catch this, but returning empty on specific errors is also an option
+            return JobReviewsResponse(review=[]) # Return empty list on error
+        finally:
+            # Ensure cursor and connection are closed
+            if cursor is not None:
+                cursor.close()
+            if conn is not None:
+                conn.close()
+
     def GetJobReviewsForLocationReview(self, request, context):
+        conn = None # Initialize conn to None
+        cursor = None # Initialize cursor to None
         try:
-            conn = psycopg2.connect(**DB_CONFIG)
+            conn = get_db_connection()
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             cursor.execute(
                 "SELECT * FROM reviews LIMIT %s OFFSET %s", 
@@ -219,15 +283,24 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
                 )
                 for row in rows
             ]
-            cursor.close()
-            conn.close()
+
             return JobReviewsResponse(review=reviews)
         except Exception as e:
-            return JobReviewsResponse(review=[])
+            print(f"Error in GetJobReviewsForLocationReview: {e}")
+            # The interceptor might catch this, but returning empty on specific errors is also an option
+            return JobReviewsResponse(review=[]) # Return empty list on error
+        finally:
+            # Ensure cursor and connection are closed
+            if cursor is not None:
+                cursor.close()
+            if conn is not None:
+                conn.close()
 
     def UpdateJobReview(self, request, context):
+        conn = None # Initialize conn to None
+        cursor = None # Initialize cursor to None
         try:
-            conn = psycopg2.connect(**DB_CONFIG)
+            conn = get_db_connection()
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             
             update_query = """
@@ -240,19 +313,27 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
             cursor.execute(update_query, (request.current_status, request.rating, request.headline, request.id))
             conn.commit()
             rowcount = cursor.rowcount
-            cursor.close()
-            conn.close()
             
             if rowcount == 0:
                 return UpdateJobReviewResponse(success=False, message="Review not found")
             else:
                 return UpdateJobReviewResponse(success=True, message="Review updated successfully")
         except Exception as e:
-            return UpdateJobReviewResponse(success=False, message=str(e))
+            print(f"Error in UpdateJobReview: {e}")
+            # The interceptor might catch this, but returning empty on specific errors is also an option
+            return UpdateJobReviewResponse(success=False, message=str(e)) # Return empty list on error
+        finally:
+            # Ensure cursor and connection are closed
+            if cursor is not None:
+                cursor.close()
+            if conn is not None:
+                conn.close()
         
     def GetJobReviewsWithTitleAndCity(self, request, context):
+        conn = None # Initialize conn to None
+        cursor = None # Initialize cursor to None
         try:
-            conn = psycopg2.connect(**DB_CONFIG)
+            conn = get_db_connection()
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)  # Permite acessar colunas pelo nome
             cursor.execute(
                 "SELECT * FROM reviews WHERE TRIM(job_title) LIKE %s AND TRIM(location) LIKE %s",
@@ -286,18 +367,24 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
                 for row in rows
             ]
 
-            cursor.close()
-            conn.close()
-
             return JobReviewsResponse(review=reviews)
 
         except Exception as e:
-            print(f"Database error: {e}")
-            return JobReviewsResponse(review=[])
+            print(f"Error in GetJobReviewsWithTitleAndCity: {e}")
+            # The interceptor might catch this, but returning empty on specific errors is also an option
+            return JobReviewsResponse(review=[]) # Return empty list on error
+        finally:
+            # Ensure cursor and connection are closed
+            if cursor is not None:
+                cursor.close()
+            if conn is not None:
+                conn.close()
         
     def CreateReview(self, request, context):
+        conn = None # Initialize conn to None
+        cursor = None # Initialize cursor to None
         try:
-            conn = psycopg2.connect(**DB_CONFIG)
+            conn = get_db_connection()
             cursor = conn.cursor()
 
             cursor.execute("SELECT COALESCE(MAX(id), 0) + 1 FROM reviews")
@@ -339,17 +426,24 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
             """, review_data)
 
             conn.commit()
-            cursor.close()
-            conn.close()
 
             return CreateReviewResponse(success="Review added successfully.")
         except Exception as e:
-            print(f"Database error: {e}")
-            return CreateReviewResponse(success="Failed to add review.")
+            print(f"Error in CreateReview: {e}")
+            # The interceptor might catch this, but returning empty on specific errors is also an option
+            return CreateReviewResponse(success="Failed to add review.") # Return empty list on error
+        finally:
+            # Ensure cursor and connection are closed
+            if cursor is not None:
+                cursor.close()
+            if conn is not None:
+                conn.close()
         
     def PostJobInDB(self, request, context):
+        conn = None # Initialize conn to None
+        cursor = None # Initialize cursor to None
         try:
-            conn = psycopg2.connect(**DB_CONFIG)
+            conn = get_db_connection()
             cursor = conn.cursor()
 
             job_id = self.generate_unique_job_id(cursor)
@@ -369,9 +463,6 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
             # Commit para persistir as alterações
             conn.commit()
 
-            cursor.close()
-            conn.close()
-
             # Retornar a resposta de sucesso
             return data_access_pb2.PostJobResponse(
                 message="Job successfully inserted",
@@ -379,10 +470,18 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
             )
 
         except Exception as e:
+            print(f"Error in PostJobInDB: {e}")
+            # The interceptor might catch this, but returning empty on specific errors is also an option
             return data_access_pb2.PostJobResponse(
                 message=f"Erro ao atualizar ou inserir o trabalho: {e}",
                 status=500
             )
+        finally:
+            # Ensure cursor and connection are closed
+            if cursor is not None:
+                cursor.close()
+            if conn is not None:
+                conn.close()
 
     def generate_unique_job_id(self, cursor):
         """Gera um ID único para o trabalho."""
@@ -394,8 +493,10 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
                 return new_id
         
     def GetRemoteJobs(self, request, context):
+        conn = None # Initialize conn to None
+        cursor = None # Initialize cursor to None
         try:
-            conn = psycopg2.connect(**DB_CONFIG)
+            conn = get_db_connection()
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
             query = """
@@ -441,18 +542,24 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
                 )
                 job_postings.append(job_obj)
 
-            cursor.close()
-            conn.close()
-
             return RemoteJobSearchResponse(jobs=job_postings)
 
         except Exception as e:
-            print(f"Database query error: {str(e)}")
+            print(f"Error in GetRemoteJobs: {e}")
+            # The interceptor might catch this, but returning empty on specific errors is also an option
             context.set_details(f"Database query failed: {str(e)}")
             context.set_code(grpc.StatusCode.INTERNAL)
             return RemoteJobSearchResponse(jobs=[])
+        finally:
+            # Ensure cursor and connection are closed
+            if cursor is not None:
+                cursor.close()
+            if conn is not None:
+                conn.close()
 
     def GetBestPayingCompanies(self, request, context):
+        conn = None # Initialize conn to None
+        cursor = None # Initialize cursor to None
 
         job_title = request.title
 
@@ -462,7 +569,7 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
             return BestPayingCompaniesResponse()
 
         try:
-            conn = psycopg2.connect(**DB_CONFIG)
+            conn = get_db_connection()
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
             query = """
@@ -484,19 +591,26 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
                 )
                 companies.append(company)
 
-            cursor.close()
-            conn.close()
-
             return BestPayingCompaniesResponse(companies=companies)
 
         except Exception as e:
+            print(f"Error in GetBestPayingCompanies: {e}")
+            # The interceptor might catch this, but returning empty on specific errors is also an option
             context.set_details(f"Database query failed: {str(e)}")
             context.set_code(grpc.StatusCode.INTERNAL)
             return BestPayingCompaniesResponse()
+        finally:
+            # Ensure cursor and connection are closed
+            if cursor is not None:
+                cursor.close()
+            if conn is not None:
+                conn.close()
         
     def DeleteReview(self, request, context):
+        conn = None # Initialize conn to None
+        cursor = None # Initialize cursor to None
         try:
-            conn = psycopg2.connect(**DB_CONFIG)
+            conn = get_db_connection()
             cursor = conn.cursor()
 
             cursor.execute("SELECT COUNT(*) FROM reviews WHERE id = %s", (request.review_id,))
@@ -512,15 +626,20 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
             cursor.execute("DELETE FROM reviews WHERE id = %s", (request.review_id,))
             conn.commit()
 
-            cursor.close()
-            conn.close()
-
             return DeleteReviewResponse(success=True, message="Review deleted successfully")
 
         except Exception as e:
+            print(f"Error in GetBestPayingCompanies: {e}")
+            # The interceptor might catch this, but returning empty on specific errors is also an option
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details(f"Error deleting Review: {str(e)}")
             return DeleteReviewResponse(success=False, message="Error deleting Review")
+        finally:
+            # Ensure cursor and connection are closed
+            if cursor is not None:
+                cursor.close()
+            if conn is not None:
+                conn.close()
 
 def serve():
     interceptors = [ExceptionToStatusInterceptor()]
