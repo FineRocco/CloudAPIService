@@ -7,23 +7,6 @@ metadata:
   annotations: # Link KSA to GSA
     iam.gke.io/gcp-service-account: data-access-sa@projectcloud-451415.iam.gserviceaccount.com
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: data-access-service
-  namespace: job-app
-  labels:
-    app: data-access
-spec:
-  ports:
-  - port: 50051 # Service port
-    targetPort: grpc-access # Target the data-access container port
-    protocol: TCP
-    name: grpc-svc-port
-  selector:
-    app: data-access
-  type: ClusterIP
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -47,6 +30,9 @@ spec:
         app: data-access
     spec:
       serviceAccountName: data-access-ksa # Use the KSA configured for Workload Identity
+      # Remove the volumes and volumeMounts sections related to bigquery-credentials
+      # Remove the GOOGLE_APPLICATION_CREDENTIALS environment variable
+
       containers:
       # Application Container
       - name: data-access
@@ -56,27 +42,42 @@ spec:
         - containerPort: 50051
           name: grpc-access
         env:
-          # DB Host/Port are now handled by the proxy (connect to localhost)
-          - name: DB_HOST # Might not be needed if app connects to localhost:5432
-            value: "127.0.0.1"
-          - name: DB_PORT # Might not be needed if app connects to localhost:5432
+          # --- REMOVE BigQuery env vars ---
+          # - name: GCP_PROJECT_ID
+          #   value: "genial-analyzer-451415-r2"
+          # - name: BIGQUERY_DATASET
+          #   value: "dataset_jobs"
+          # - name: GOOGLE_APPLICATION_CREDENTIALS
+          #   value: /etc/secrets/key.json
+          # --- END REMOVE ---
+
+          # --- ADD/UPDATE PostgreSQL env vars ---
+          # DB_HOST should point to the internal Kubernetes Service name
+          - name: DB_HOST
+            value: "postgres-service" # Use the name of your PostgreSQL service
+
+          # DB_PORT should point to the service port
+          - name: DB_PORT
             value: "5432"
-          # Inject DB Name, User, Password from Secret
+
+          # Inject DB Name, User, Password from the *new* PostgreSQL Secret
           - name: DB_NAME
             valueFrom:
               secretKeyRef:
-                name: cloudsql-db-credentials
-                key: database
+                name: postgres-credentials # Must match the name of the Secret you created
+                key: POSTGRES_DB
           - name: DB_USER
             valueFrom:
               secretKeyRef:
-                name: cloudsql-db-credentials
-                key: username
+                name: postgres-credentials # Must match the name of the Secret you created
+                key: POSTGRES_USER
           - name: DB_PASSWORD
             valueFrom:
               secretKeyRef:
-                name: cloudsql-db-credentials
-                key: password
+                name: postgres-credentials # Must match the name of the Secret you created
+                key: POSTGRES_PASSWORD
+          # --- END ADD/UPDATE ---
+
         # Define Resources (Goal: cost-effective) - ADJUST!
         resources:
           requests:
@@ -91,8 +92,10 @@ spec:
           initialDelaySeconds: 15
           periodSeconds: 20
         readinessProbe:
-          tcpSocket: { port: grpc-access } # Basic check
-          # Add exec probe checking DB connection if possible
+          tcpSocket: { port: grpc-access } # Basic check.
+          # CONSIDER: Update this to an exec probe that checks the DB connection
+          # e.g., exec: { command: ["pg_isready", "-h", "127.0.0.1", "-p", "5432", "-U", "$(DB_USER)"] }
+          # You'll need postgres client tools in your data-access image for pg_isready
           initialDelaySeconds: 5
           periodSeconds: 10
         startupProbe:
@@ -100,30 +103,8 @@ spec:
           failureThreshold: 30
           periodSeconds: 10
 
-      # Cloud SQL Auth Proxy Sidecar Container
-      - name: cloud-sql-proxy
-        image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:latest # Use specific version if needed
-        args:
-          # Add this flag to listen on all interfaces
-          - "--address=0.0.0.0"
-          # Instance connection name from Cloud SQL instance page
-          - "--structured-logs"
-          - "--port=5432" # Port the proxy listens on (inside the pod)
-          - "projectcloud-451415:europe-west1:dataset" # !!! REPLACE !!!
-        securityContext:
-          runAsNonRoot: true # Recommended
-        # Define Resources for the proxy - ADJUST!
-        resources:
-          requests:
-            memory: "32Mi"
-            cpu: "50m"
-          limits:
-            memory: "64Mi"
-            cpu: "100m"
-        # Add proxy readiness probe
-        readinessProbe:
-          tcpSocket:
-            port: 5432   # Check if the proxy is listening on its configured port
-          initialDelaySeconds: 5
-          periodSeconds: 10
-          # You can add failureThreshold if needed, default is 3
+      # --- REMOVE Cloud SQL Auth Proxy Sidecar Container ---
+      # - name: cloud-sql-proxy
+      #   image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:latest
+      #   # ... args and other config ...
+      # --- END REMOVE ---

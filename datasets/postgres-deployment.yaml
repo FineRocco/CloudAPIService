@@ -1,0 +1,137 @@
+# 1. Secret (Ensure you create this manually or via separate process, don't put credentials here)
+# This Secret should be created BEFORE applying the Deployment
+# kubectl create secret generic postgres-credentials -n job-app --from-literal=POSTGRES_USER=... --from-literal=POSTGRES_PASSWORD=... --from-literal=POSTGRES_DB=...
+# apiVersion: v1
+# kind: Secret
+# metadata:
+#   name: postgres-credentials
+#   namespace: job-app
+# data:
+#   POSTGRES_USER: <base64 encoded username>
+#   POSTGRES_PASSWORD: <base64 encoded password>
+#   POSTGRES_DB: <base64 encoded dbname>
+# ---
+
+# 2. PersistentVolumeClaim (Requests storage for the database data)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data-pvc
+  namespace: job-app
+spec:
+  accessModes:
+    - ReadWriteOnce # Allows the volume to be mounted as read-write by a single node
+  resources:
+    requests:
+      storage: 5Gi # Request 5 GiB of storage (adjust as needed)
+  # storageClassName: standard # Uncomment if you need a specific storage class
+
+---
+# 3. Deployment (Manages the PostgreSQL pod)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-deployment
+  namespace: job-app
+  labels:
+    app: postgres
+spec:
+  replicas: 1 # Usually 1 replica for a database unless using advanced replication
+  selector:
+    matchLabels:
+      app: postgres
+  strategy:
+    type: Recreate # Use Recreate strategy for single-replica stateful apps like DBs to avoid issues
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      # serviceAccountName: <optional - only needed if DB pod itself needs GCP permissions>
+      containers:
+        - name: postgres
+          # Use the image you built and pushed to Artifact Registry
+          image: europe-west1-docker.pkg.dev/projectcloud-451415/cloudapiservice/postgres-with-data:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5432 # Default PostgreSQL port
+              name: db-port
+          env:
+            # Populate environment variables from the Secret
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: POSTGRES_DB
+            # IMPORTANT: This tells the init script where to find the CSVs.
+            # We copied them there in the Dockerfile.
+            # This variable is specifically used by the postgres entrypoint for init scripts.
+            - name: PGDATA
+              value: /var/lib/postgresql/data # Standard location for PG data
+          volumeMounts:
+            # Mount the PVC to the standard PostgreSQL data directory
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+              # The initdb scripts will run if this mountPath is initially empty
+          resources:
+            requests:
+              memory: "256Mi" # Adjust based on your needs
+              cpu: "200m"
+            limits:
+              memory: "512Mi" # Adjust based on your needs
+              cpu: "500m"
+          # Add probes (adjust values based on database startup time)
+          livenessProbe:
+            tcpSocket:
+              port: 5432
+            initialDelaySeconds: 30 # Give DB time to start and init
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 5432
+            initialDelaySeconds: 10 # Check after it starts
+            periodSeconds: 5
+      volumes:
+        # Define the volume that will use the PVC
+        - name: postgres-storage
+          persistentVolumeClaim:
+            claimName: postgres-data-pvc # Must match the PVC name
+
+---
+# 4. Service (Provides a stable internal IP for other pods to connect)
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service # Name other pods will use to connect (DNS)
+  namespace: job-app
+  labels:
+    app: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  strategy:
+    type: Recreate
+  template: # <--- The 'template' field IS present and correctly indented under spec
+    metadata:
+      labels:
+        app: postgres
+  ports:
+    - port: 5432 # Service port
+      targetPort: db-port # Target the container port named 'db-port' (5432)
+      protocol: TCP
+      name: tcp-5432
+  selector:
+    app: postgres # Selects pods with this label (the postgres deployment pod)
+  type: ClusterIP # Makes the service only reachable within the cluster network
