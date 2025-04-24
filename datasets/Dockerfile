@@ -1,14 +1,17 @@
-# Use the official PostgreSQL image as the base
+# Use an official PostgreSQL image as the base
+# Using a specific version is recommended over 'latest' for stability
 FROM postgres:16
 
-# Copy the initialization script and CSV data into the
-# /docker-entrypoint-initdb.d/ directory.
-# Files in this directory are executed alphabetically when the container
-# starts and finds an empty data directory.
-COPY init.sql /docker-entrypoint-initdb.d/
-COPY job_postings.csv /docker-entrypoint-initdb.d/
-COPY job_reviews.csv /docker-entrypoint-initdb.d/
-COPY employee_counts.csv /docker-entrypoint-initdb.d/
+# Set the working directory (optional, but good practice)
+WORKDIR /docker-entrypoint-initdb.d/
 
-# The default PostgreSQL entrypoint will handle the rest
-# (creating the DB, user, and running the scripts)
+# Copy the initialization script and CSV data files
+# into the directory where PostgreSQL looks for init scripts.
+COPY init.sql .
+COPY job_reviews.csv .
+COPY job_postings.csv .
+COPY employee_counts.csv .
+
+# PostgreSQL entrypoint will automatically execute init.sql
+# when the database is initialized for the first time.
+# The CSV files need to be in this directory for the COPY FROM commands to work.

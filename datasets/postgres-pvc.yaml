@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc           # Name for the Persistent Volume Claim
+  namespace: job-app          # Match the namespace
+spec:
+  accessModes:
+    - ReadWriteOnce           # Can be mounted read-write by a single node/pod
+  resources:
+    requests:
+      storage: 5Gi            # Adjust storage size as needed (e.g., 5Gi, 10Gi)
+  # Optional: specify a storageClassName if required by your cluster's storage provider
+  # storageClassName: standard # e.g., for GKE standard persistent disk

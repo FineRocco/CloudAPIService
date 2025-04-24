@@ -1,110 +1,96 @@
 # data-access-deployment.yaml
-apiVersion: v1
-kind: ServiceAccount # KSA for Workload Identity
-metadata:
-  name: data-access-ksa # Name used in IAM binding
-  namespace: job-app
-  annotations: # Link KSA to GSA
-    iam.gke.io/gcp-service-account: data-access-sa@projectcloud-451415.iam.gserviceaccount.com
----
+# Defines the Kubernetes Deployment for the data-access application pods.
+# Manages replicas, updates, and pod specifications.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  # Name of the Deployment object
   name: data-access-deployment
+  # Ensure this matches the namespace of your Service and other resources
   namespace: job-app
+  # Labels for the Deployment object itself (optional but good practice)
   labels:
     app: data-access
 spec:
-  replicas: 1 # Configure rolling update strategy below
+  # Number of desired pod replicas
+  replicas: 1
+  # Defines how the Deployment finds the pods it manages
   selector:
     matchLabels:
+      # Must match the labels defined in template.metadata.labels
       app: data-access
-  strategy: # Define Rolling Update strategy
+  # Defines the update strategy (RollingUpdate is default and recommended)
+  strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxUnavailable: 25% # Or 1
-      maxSurge: 25% # Or 1
+      # Controls how many pods can be unavailable during an update
+      maxUnavailable: 25%
+      # Controls how many extra pods can be created during an update
+      maxSurge: 25%
+  # Template for the pods that this Deployment will create
   template:
     metadata:
+      # Labels applied to each Pod created by this Deployment.
+      # MUST match spec.selector.matchLabels
       labels:
         app: data-access
     spec:
-      serviceAccountName: data-access-ksa # Use the KSA configured for Workload Identity
-      # Remove the volumes and volumeMounts sections related to bigquery-credentials
-      # Remove the GOOGLE_APPLICATION_CREDENTIALS environment variable
-
+      # serviceAccountName: data-access-ksa # Add back if needed for non-DB GCP access
       containers:
-      # Application Container
+        # Definition for the main application container
       - name: data-access
-        image: europe-west1-docker.pkg.dev/projectcloud-451415/cloudapiservice/data_access:latest # Your actual image
+        # The Docker image for your data-access application
+        image: europe-west1-docker.pkg.dev/projectcloud-451415/cloudapiservice/data_access:latest
+        # Pull the image every time, useful for :latest tags during development
         imagePullPolicy: Always
+        # Ports the container exposes
         ports:
-        - containerPort: 50051
+        - containerPort: 50051 # The port your gRPC app listens on inside the container
+          # Name for the port, referenced by the Service's targetPort and probes
           name: grpc-access
+        # Environment variables for the container
         env:
-          # --- REMOVE BigQuery env vars ---
-          # - name: GCP_PROJECT_ID
-          #   value: "genial-analyzer-451415-r2"
-          # - name: BIGQUERY_DATASET
-          #   value: "dataset_jobs"
-          # - name: GOOGLE_APPLICATION_CREDENTIALS
-          #   value: /etc/secrets/key.json
-          # --- END REMOVE ---
-
-          # --- ADD/UPDATE PostgreSQL env vars ---
-          # DB_HOST should point to the internal Kubernetes Service name
-          - name: DB_HOST
-            value: "postgres-service" # Use the name of your PostgreSQL service
-
-          # DB_PORT should point to the service port
-          - name: DB_PORT
-            value: "5432"
-
-          # Inject DB Name, User, Password from the *new* PostgreSQL Secret
-          - name: DB_NAME
-            valueFrom:
-              secretKeyRef:
-                name: postgres-credentials # Must match the name of the Secret you created
-                key: POSTGRES_DB
-          - name: DB_USER
-            valueFrom:
-              secretKeyRef:
-                name: postgres-credentials # Must match the name of the Secret you created
-                key: POSTGRES_USER
-          - name: DB_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: postgres-credentials # Must match the name of the Secret you created
-                key: POSTGRES_PASSWORD
-          # --- END ADD/UPDATE ---
-
-        # Define Resources (Goal: cost-effective) - ADJUST!
+          # Hostname of the internal PostgreSQL service
+        - name: DB_HOST
+          value: "postgres-service"
+          # Port of the internal PostgreSQL service
+        - name: DB_PORT
+          value: "5432"
+          # Database name, user, and password sourced from the Kubernetes Secret
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: postgres-db-credentials # Name of the Secret object
+              key: database                # Key within the Secret data
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-db-credentials
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-db-credentials
+              key: password
+        # Resource requests and limits for the container (adjust as needed)
         resources:
           requests:
-            memory: "64Mi"
+            memory: "256Mi"
             cpu: "100m"
           limits:
-            memory: "128Mi"
+            memory: "1024Mi"
             cpu: "250m"
-        # Define Probes (Goal: setup your own probes) - ADJUST!
-        livenessProbe:
-          tcpSocket: { port: grpc-access } # Basic check
-          initialDelaySeconds: 15
-          periodSeconds: 20
-        readinessProbe:
-          tcpSocket: { port: grpc-access } # Basic check.
-          # CONSIDER: Update this to an exec probe that checks the DB connection
-          # e.g., exec: { command: ["pg_isready", "-h", "127.0.0.1", "-p", "5432", "-U", "$(DB_USER)"] }
-          # You'll need postgres client tools in your data-access image for pg_isready
-          initialDelaySeconds: 5
-          periodSeconds: 10
-        startupProbe:
+        # Health checks for the container
+        livenessProbe: # Checks if the container is running (should be restarted if fails)
+          tcpSocket: { port: grpc-access } # Basic check: is the port accepting connections?
+          initialDelaySeconds: 15          # Wait 15s after start before probing
+          periodSeconds: 20                # Probe every 20s
+        readinessProbe: # Checks if the container is ready to serve traffic
+          tcpSocket: { port: grpc-access } # Basic check: is the port accepting connections?
+          initialDelaySeconds: 5           # Wait 5s after start before probing
+          periodSeconds: 10                # Probe every 10s
+        startupProbe: # Checks if the container has started successfully (longer initial timeout)
           tcpSocket: { port: grpc-access }
-          failureThreshold: 30
+          failureThreshold: 30             # Allow 30 failures (30 * 10s = 5 mins) before failing startup
           periodSeconds: 10
 
-      # --- REMOVE Cloud SQL Auth Proxy Sidecar Container ---
-      # - name: cloud-sql-proxy
-      #   image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:latest
-      #   # ... args and other config ...
-      # --- END REMOVE ---

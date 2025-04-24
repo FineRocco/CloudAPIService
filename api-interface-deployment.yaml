@@ -70,16 +70,16 @@ spec:
             path: /healthz # !!! Replace with your actual health check path !!!
             port: http-api # Reference the named port
           initialDelaySeconds: 20
-          periodSeconds: 15
+          periodSeconds: 60
         readinessProbe:
           httpGet:
             path: /readyz # !!! Replace with your actual readiness check path !!!
             port: http-api
           initialDelaySeconds: 10
-          periodSeconds: 5
+          periodSeconds: 30
         startupProbe:
           httpGet:
             path: /healthz # Can often be same as liveness path
             port: http-api
           failureThreshold: 30
-          periodSeconds: 10
+          periodSeconds: 20
