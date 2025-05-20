@@ -34,6 +34,11 @@ spec:
       # MUST match spec.selector.matchLabels
       labels:
         app: data-access
+      annotations:
+        sidecar.istio.io/proxyCPU: "200m"             # Request 0.2 vCPU
+        sidecar.istio.io/proxyMemory: "256Mi"          # Request 256MB RAM
+        sidecar.istio.io/proxyCPULimit: "500m"         # Allow bursting up to 0.5 vCPU
+        sidecar.istio.io/proxyMemoryLimit: "512Mi"     # Allow bursting up to 512MB RAM
     spec:
       # serviceAccountName: data-access-ksa # Add back if needed for non-DB GCP access
       containers:
@@ -75,11 +80,11 @@ spec:
         # Resource requests and limits for the container (adjust as needed)
         resources:
           requests:
-            memory: "256Mi"
-            cpu: "100m"
+            memory: "128Mi"
+            cpu: "50m"
           limits:
-            memory: "1024Mi"
-            cpu: "250m"
+            memory: "128Mi"
+            cpu: "50m"
         # Health checks for the container
         livenessProbe: # Checks if the container is running (should be restarted if fails)
           tcpSocket: { port: grpc-access } # Basic check: is the port accepting connections?

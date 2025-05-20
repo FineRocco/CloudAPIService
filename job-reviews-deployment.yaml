@@ -37,6 +37,11 @@ spec:
     metadata:
       labels:
         app: job-reviews
+      annotations:
+        sidecar.istio.io/proxyCPU: "200m"             # Request 0.2 vCPU
+        sidecar.istio.io/proxyMemory: "256Mi"          # Request 256MB RAM
+        sidecar.istio.io/proxyCPULimit: "500m"         # Allow bursting up to 0.5 vCPU
+        sidecar.istio.io/proxyMemoryLimit: "512Mi"     # Allow bursting up to 512MB RAM
     spec:
       # No specific serviceAccountName needed
       containers:
@@ -57,8 +62,8 @@ spec:
             memory: "256Mi"
             cpu: "100m"
           limits:
-            memory: "1024Mi"
-            cpu: "250m"
+            memory: "256Mi"
+            cpu: "100m"
         # Add placeholder probes - ADJUST! Use grpc_health_probe if possible
         livenessProbe:
           tcpSocket: { port: grpc }

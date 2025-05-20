@@ -6,9 +6,13 @@ metadata:
   namespace: job-app
   labels:
     app: api-interface
+  annotations:
+    # Link this Service to the BackendConfig named 'api-interface-long-timeout-config'.
+    # 'default' applies the config to all ports served by this Service backend.
+    cloud.google.com/backend-config: '{"default": "api-interface-long-timeout-config"}'
 spec:
   ports:
-  # Service port (typically 80 for HTTP traffic targeted by Ingress)
+    # Service port (typically 80 for HTTP traffic targeted by Ingress)
   - port: 80
     # Target port name defined in the container spec
     targetPort: http-api # Use a short, valid name (<= 15 chars)
@@ -39,6 +43,12 @@ spec:
     metadata:
       labels:
         app: api-interface
+      annotations:
+        # Annotations for Istio Sidecar
+        sidecar.istio.io/proxyCPU: "200m"             # Request 0.2 vCPU
+        sidecar.istio.io/proxyMemory: "256Mi"          # Request 256MB RAM
+        sidecar.istio.io/proxyCPULimit: "500m"         # Allow bursting up to 0.5 vCPU
+        sidecar.istio.io/proxyMemoryLimit: "512Mi"     # Allow bursting up to 512MB RAM
     spec:
       # No specific serviceAccountName needed
       containers:
@@ -47,23 +57,23 @@ spec:
         image: europe-west1-docker.pkg.dev/projectcloud-451415/cloudapiservice/api_interface:latest
         imagePullPolicy: Always
         ports:
-        # Container port definition
+          # Container port definition
         - containerPort: 8082 # The actual port your HTTP app listens on (from compose 8082:8082)
           name: http-api # The short name referenced by Service and Probes
         env:
           # Use K8s Service names for dependencies from compose env
-          - name: JOBPOSTINSHOST
-            value: "job-postings-service"
-          - name: JOBREVIEWSHOST
-            value: "job-reviews-service"
+        - name: JOBPOSTINSHOST # Note: Typo kept from original user code
+          value: "job-postings-service"
+        - name: JOBREVIEWSHOST
+          value: "job-reviews-service"
         # Add placeholder resources - ADJUST!
         resources:
           requests:
-            memory: "128Mi"
+            memory: "256Mi"
             cpu: "100m"
           limits:
             memory: "256Mi"
-            cpu: "500m"
+            cpu: "100m"
         # Add placeholder probes - ADJUST (use HTTP GET on a /healthz or similar path)
         livenessProbe:
           httpGet:

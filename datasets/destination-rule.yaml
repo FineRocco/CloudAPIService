@@ -1,0 +1,10 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: postgres-service-mtls
+  namespace: job-app
+spec:
+  host: postgres-service.job-app.svc.cluster.local # Or just postgres-service if clients are in job-app
+  trafficPolicy:
+    tls:
+      mode: DISABLE

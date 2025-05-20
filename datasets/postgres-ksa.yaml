@@ -1,0 +1,6 @@
+# postgres-ksa.yaml
+ apiVersion: v1
+ kind: ServiceAccount
+ metadata:
+   name: postgres-ksa
+   namespace: job-app
