@@ -1,0 +1,101 @@
+# data-access-deployment.yaml
+# Defines the Kubernetes Deployment for the data-access application pods.
+# Manages replicas, updates, and pod specifications.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  # Name of the Deployment object
+  name: data-access-deployment
+  # Ensure this matches the namespace of your Service and other resources
+  namespace: job-app
+  # Labels for the Deployment object itself (optional but good practice)
+  labels:
+    app: data-access
+spec:
+  # Number of desired pod replicas
+  replicas: 1
+  # Defines how the Deployment finds the pods it manages
+  selector:
+    matchLabels:
+      # Must match the labels defined in template.metadata.labels
+      app: data-access
+  # Defines the update strategy (RollingUpdate is default and recommended)
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      # Controls how many pods can be unavailable during an update
+      maxUnavailable: 25%
+      # Controls how many extra pods can be created during an update
+      maxSurge: 25%
+  # Template for the pods that this Deployment will create
+  template:
+    metadata:
+      # Labels applied to each Pod created by this Deployment.
+      # MUST match spec.selector.matchLabels
+      labels:
+        app: data-access
+      annotations:
+        sidecar.istio.io/proxyCPU: "200m"             # Request 0.2 vCPU
+        sidecar.istio.io/proxyMemory: "256Mi"          # Request 256MB RAM
+        sidecar.istio.io/proxyCPULimit: "500m"         # Allow bursting up to 0.5 vCPU
+        sidecar.istio.io/proxyMemoryLimit: "512Mi"     # Allow bursting up to 512MB RAM
+    spec:
+      # serviceAccountName: data-access-ksa # Add back if needed for non-DB GCP access
+      containers:
+        # Definition for the main application container
+      - name: data-access
+        # The Docker image for your data-access application
+        image: europe-west1-docker.pkg.dev/projectcloud-451415/cloudapiservice/data_access:latest
+        # Pull the image every time, useful for :latest tags during development
+        imagePullPolicy: Always
+        # Ports the container exposes
+        ports:
+        - containerPort: 50051 # The port your gRPC app listens on inside the container
+          # Name for the port, referenced by the Service's targetPort and probes
+          name: grpc-access
+        # Environment variables for the container
+        env:
+          # Hostname of the internal PostgreSQL service
+        - name: DB_HOST
+          value: "postgres-service"
+          # Port of the internal PostgreSQL service
+        - name: DB_PORT
+          value: "5432"
+          # Database name, user, and password sourced from the Kubernetes Secret
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: postgres-db-credentials # Name of the Secret object
+              key: database                # Key within the Secret data
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-db-credentials
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-db-credentials
+              key: password
+        # Resource requests and limits for the container (adjust as needed)
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "50m"
+        # Health checks for the container
+        livenessProbe: # Checks if the container is running (should be restarted if fails)
+          tcpSocket: { port: grpc-access } # Basic check: is the port accepting connections?
+          initialDelaySeconds: 15          # Wait 15s after start before probing
+          periodSeconds: 20                # Probe every 20s
+        readinessProbe: # Checks if the container is ready to serve traffic
+          tcpSocket: { port: grpc-access } # Basic check: is the port accepting connections?
+          initialDelaySeconds: 5           # Wait 5s after start before probing
+          periodSeconds: 10                # Probe every 10s
+        startupProbe: # Checks if the container has started successfully (longer initial timeout)
+          tcpSocket: { port: grpc-access }
+          failureThreshold: 30             # Allow 30 failures (30 * 10s = 5 mins) before failing startup
+          periodSeconds: 10
+

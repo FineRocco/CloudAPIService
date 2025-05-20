@@ -1,0 +1,95 @@
+# api-interface-deployment.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-interface-service
+  namespace: job-app
+  labels:
+    app: api-interface
+  annotations:
+    # Link this Service to the BackendConfig named 'api-interface-long-timeout-config'.
+    # 'default' applies the config to all ports served by this Service backend.
+    cloud.google.com/backend-config: '{"default": "api-interface-long-timeout-config"}'
+spec:
+  ports:
+    # Service port (typically 80 for HTTP traffic targeted by Ingress)
+  - port: 80
+    # Target port name defined in the container spec
+    targetPort: http-api # Use a short, valid name (<= 15 chars)
+    protocol: TCP
+    name: http-svc-port
+  selector:
+    app: api-interface # Selects pods with this label
+  type: ClusterIP # Exposed via Ingress externally
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-interface-deployment
+  namespace: job-app
+  labels:
+    app: api-interface
+spec:
+  replicas: 1 # Adjust as needed
+  selector:
+    matchLabels:
+      app: api-interface
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  template:
+    metadata:
+      labels:
+        app: api-interface
+      annotations:
+        # Annotations for Istio Sidecar
+        sidecar.istio.io/proxyCPU: "200m"             # Request 0.2 vCPU
+        sidecar.istio.io/proxyMemory: "256Mi"          # Request 256MB RAM
+        sidecar.istio.io/proxyCPULimit: "500m"         # Allow bursting up to 0.5 vCPU
+        sidecar.istio.io/proxyMemoryLimit: "512Mi"     # Allow bursting up to 512MB RAM
+    spec:
+      # No specific serviceAccountName needed
+      containers:
+      - name: api-interface
+        # !!! ACTION REQUIRED: Replace with your actual image path !!!
+        image: europe-west1-docker.pkg.dev/projectcloud-451415/cloudapiservice/api_interface:latest
+        imagePullPolicy: Always
+        ports:
+          # Container port definition
+        - containerPort: 8082 # The actual port your HTTP app listens on (from compose 8082:8082)
+          name: http-api # The short name referenced by Service and Probes
+        env:
+          # Use K8s Service names for dependencies from compose env
+        - name: JOBPOSTINSHOST # Note: Typo kept from original user code
+          value: "job-postings-service"
+        - name: JOBREVIEWSHOST
+          value: "job-reviews-service"
+        # Add placeholder resources - ADJUST!
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "100m"
+        # Add placeholder probes - ADJUST (use HTTP GET on a /healthz or similar path)
+        livenessProbe:
+          httpGet:
+            path: /healthz # !!! Replace with your actual health check path !!!
+            port: http-api # Reference the named port
+          initialDelaySeconds: 20
+          periodSeconds: 60
+        readinessProbe:
+          httpGet:
+            path: /readyz # !!! Replace with your actual readiness check path !!!
+            port: http-api
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        startupProbe:
+          httpGet:
+            path: /healthz # Can often be same as liveness path
+            port: http-api
+          failureThreshold: 30
+          periodSeconds: 20

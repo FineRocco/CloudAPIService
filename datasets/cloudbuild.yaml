@@ -1,0 +1,14 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+    'build',
+    '-t', 'europe-west1-docker.pkg.dev/projectcloud-451415/cloudapiservice/postgres-with-data:latest', # Your custom image name
+    '.', # Build context: the current directory containing Dockerfile, init.sql, and CSVs
+  ]
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+    'push',
+    'europe-west1-docker.pkg.dev/projectcloud-451415/cloudapiservice/postgres-with-data:latest', # Push your custom image
+  ]
+images:
+- 'europe-west1-docker.pkg.dev/projectcloud-451415/cloudapiservice/postgres-with-data:latest' # List the image to be pushed by Cloud Build

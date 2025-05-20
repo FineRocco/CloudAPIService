@@ -1,0 +1,29 @@
+# data-access-service.yaml
+# Defines the Kubernetes Service for the data-access pods.
+# This provides a stable DNS name and IP within the cluster.
+apiVersion: v1
+kind: Service
+metadata:
+  # The name other services will use to connect (e.g., from job-reviews)
+  name: data-access-service
+  # Ensure this matches the namespace of your pods and other services
+  namespace: job-app
+  # Labels for the Service object itself (optional but good practice)
+  labels:
+    app: data-access
+spec:
+  ports:
+    # Defines the port the Service listens on within the cluster
+  - port: 50051
+    # The port on the target Pods that the Service should forward traffic to.
+    # Should match the 'name' of the containerPort in the Deployment.
+    targetPort: grpc-access
+    protocol: TCP
+    # A name for this port definition within the Service
+    name: grpc-svc-port
+  # Selects the Pods that this Service will route traffic to.
+  # Must match the labels defined in the Deployment's template.metadata.labels
+  selector:
+    app: data-access
+  # Type ClusterIP makes the Service reachable only from within the cluster.
+  type: ClusterIP

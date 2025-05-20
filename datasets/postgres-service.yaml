@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service        # Service name, used as hostname by other pods
+  namespace: job-app
+spec:
+  selector:
+    app: postgres             # Selects pods with the 'app: postgres' label
+  ports:
+    - protocol: TCP
+      port: 5432              # Port the service listens on
+      targetPort: pgport        # Port on the pod to forward traffic to (references name in Deployment)
+  type: ClusterIP             # Only reachable within the cluster

@@ -1,0 +1,15 @@
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: api-interface-long-timeout-config
+  namespace: job-app
+spec:
+  timeoutSec: 180
+  healthCheck:
+    checkIntervalSec: 15 # How often to check
+    timeoutSec: 5       # How long to wait for a response
+    healthyThreshold: 2   # Number of successes to be considered healthy
+    unhealthyThreshold: 3 # Number of failures to be considered unhealthy
+    type: HTTP          # Type of health check
+    requestPath: /readyz # Path for the health check
+    port: 8082          # The container port where your app serves /readyz

@@ -19,7 +19,7 @@ from jobreviews_pb2 import (
     DeleteReviewResponse
 )
 
-data_access_host = os.getenv("DATAACCESSHOST", "data-access")
+data_access_host = os.getenv("DATA_ACCESS_HOST", "data-access-service")
 job_reviews_channel = grpc.insecure_channel(f"{data_access_host}:50051", options=[
     ('grpc.max_send_message_length', 10 * 1024 * 1024),
     ('grpc.max_receive_message_length', 10 * 1024 * 1024)

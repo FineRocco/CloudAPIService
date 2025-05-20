@@ -1,0 +1,90 @@
+# datasets/postgres-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-deployment
+  namespace: job-app
+  labels:
+    app: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+      annotations:
+        sidecar.istio.io/inject: "false" # Keeping PostgreSQL out of the mesh for simplicity/stability
+                                        # If you want it in the mesh, remove this and add sidecar resource annotations
+    spec:
+      serviceAccountName: postgres-ksa # Use the KSA linked to GSA for GCSM access
+      containers:
+      - name: postgres
+        image: europe-west1-docker.pkg.dev/projectcloud-451415/cloudapiservice/postgres-with-data:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5432
+          name: pgport
+        env: # Continues to read from the K8s Secret 'postgres-db-credentials'
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: postgres-db-credentials # This K8s Secret is now synced from GCSM
+              key: database
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-db-credentials
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-db-credentials
+              key: password
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        - name: secrets-store-pg # Mount for the CSI driver to make secrets available as files
+          mountPath: "/mnt/secrets-store-pg" # Actual path inside container where secrets would be mounted as files
+          readOnly: true
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "750m"
+        livenessProbe:
+          tcpSocket:
+            port: pgport
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 6
+        readinessProbe:
+          exec:
+            command:
+            - "sh"
+            - "-c"
+            - "exec pg_isready -U \"$(POSTGRES_USER)\" -d \"$(POSTGRES_DB)\" -h 127.0.0.1 -p 5432 && psql -U \"$(POSTGRES_USER)\" -d \"$(POSTGRES_DB)\" -h 127.0.0.1 -p 5432 -c 'SELECT 1'"
+          initialDelaySeconds: 45
+          periodSeconds: 20
+          timeoutSeconds: 15
+          failureThreshold: 6
+      volumes:
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: postgres-pvc
+      - name: secrets-store-pg # Volume for CSI driver, referencing the SecretProviderClass
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: "postgres-gcp-secrets" # Matches SecretProviderClass.metadata.name
+          # Optional: If your KSA is in a different namespace than the SecretProviderClass (not recommended)
+          # nodePublishSecretRef:
+          #   name: secrets-store-gcp-creds
