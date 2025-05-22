@@ -223,7 +223,7 @@ steps:
         gcloud container clusters get-credentials "${_GKE_CLUSTER}" \
           --zone "${_GCP_ZONE}" --project "${PROJECT_ID}"
 
-  - name: 'gcr.io/cloud-builders/bash'
+  - name: 'gcr.io/cloud-builders/gcloud'
     id: DeployToGKE
     entrypoint: 'bash'
     args:
