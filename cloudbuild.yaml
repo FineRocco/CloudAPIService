@@ -273,3 +273,7 @@ availableSecrets:
 
 # Optional: Set a timeout for the build
 timeout: 3600s # 1 hour
+
+# Add build options for logging
+options:
+  logging: CLOUD_LOGGING_ONLY # Store logs only in Cloud Logging
