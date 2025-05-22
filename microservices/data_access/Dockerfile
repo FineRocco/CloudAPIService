@@ -16,4 +16,4 @@ RUN python -m grpc_tools.protoc -I ../protobuf --python_out=. \
 
 EXPOSE 8083
 
-CMD python3 data_access.py
+CMD ["python3", "data_access.py"]
