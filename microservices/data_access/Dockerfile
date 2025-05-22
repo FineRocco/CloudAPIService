@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y libpq-dev gcc
 
 COPY microservices/data_access/requirements.txt /app/data_access/
 COPY microservices/data_access/data_access.py /app/data_access/
-COPY data_access/protobuf/data-access.proto /app/protobuf
+COPY microservices/data_access/protobuf/data-access.proto /app/protobuf/
 
 WORKDIR /app/data_access
 RUN pip install psycopg2
