@@ -29,14 +29,14 @@ steps:
       - -c
       - |
         echo "Linting api-interface service..."
-        if [ -d "api_interface" ]; then
-          cd api_interface
+        if [ -d "microservices/api_interface" ]; then # Checks if the directory exists
+          cd microservices/api_interface             # Changes to the correct directory
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          pip install pylint flake8
-          pylint . && flake8 .
-          cd ..
+          pip install pylint flake8 # Or your chosen linters
+          pylint . && flake8 .      # Runs linters in the current directory
+          cd ../..                  # Navigates back to the repository root
         else
-          echo "Directory api_interface not found, skipping linting."
+          echo "Directory microservices/api_interface not found, skipping linting."
         fi
         echo "Linting for api-interface complete."
 
@@ -47,14 +47,14 @@ steps:
       - -c
       - |
         echo "Linting job-postings service..."
-        if [ -d "job_postings" ]; then
-          cd job_postings
+        if [ -d "microservices/job_postings" ]; then
+          cd microservices/job_postings
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           pip install pylint flake8
           pylint . && flake8 .
-          cd ..
+          cd .. / ..
         else
-          echo "Directory job_postings not found, skipping linting."
+          echo "Directory microservices/job_postings not found, skipping linting."
         fi
         echo "Linting for job-postings complete."
 
@@ -65,14 +65,14 @@ steps:
       - -c
       - |
         echo "Linting job-reviews service..."
-        if [ -d "job_reviews" ]; then
-          cd job_reviews
+        if [ -d "microservices/job_reviews" ]; then
+          cd microservices/job_reviews
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           pip install pylint flake8
           pylint . && flake8 .
-          cd ..
+          cd .. / ..
         else
-          echo "Directory job_reviews not found, skipping linting."
+          echo "Directory microservices/job_reviews not found, skipping linting."
         fi
         echo "Linting for job-reviews complete."
 
@@ -83,16 +83,29 @@ steps:
       - -c
       - |
         echo "Linting data-access service..."
-        if [ -d "data_access" ]; then
-          cd data_access
+        if [ -d "microservices/data_access" ]; then
+          cd microservices/data_access
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           pip install pylint flake8
           pylint . && flake8 .
-          cd ..
+          cd .. / ..
         else
-          echo "Directory data_access not found, skipping linting."
+          echo "Directory microservices/data_access not found, skipping linting."
         fi
         echo "Linting for data-access complete."
+
+  # Stage 2: Unit Testing (Placeholder - implement actual tests)
+  - name: 'python:3.13-slim'
+    id: TestAPIInterface
+    entrypoint: 'bash'
+    args:
+      - -c
+      - |
+        echo "Running unit tests for api-interface service (skipping actual tests)..."
+        cd microservices/api_interface
+        pip install pytest
+        pytest tests/
+    waitFor: ['LintAPIInterface', 'LintDataAccess', 'LintJobPostings', 'LintJobReviews']
 
   # Stage 2: Download CSV Datasets from GCS
   # This step runs before building the postgres-with-data image.
@@ -260,3 +273,7 @@ availableSecrets:
 
 # Optional: Set a timeout for the build
 timeout: 3600s # 1 hour
+
+# Add build options for logging
+options:
+  logging: CLOUD_LOGGING_ONLY # Store logs only in Cloud Logging
