@@ -111,7 +111,7 @@ EOF
   sleep 60 
   
   echo "Applying custom CSIDriver object from datasets/csidriver.yaml to ensure Ephemeral mode..."
-  if ! kubectl apply -f "${PROJECT_DIR}/datasets/csidriver.yaml"; then
+  if ! kubectl apply -f "https://raw.githubusercontent.com/kubernetes-sigs/secrets-store-csi-driver/main/deploy/csidriver.yaml"; then
     echo "ERROR: Failed to apply custom csidriver.yaml. Exiting."
     exit 1
   fi
