@@ -109,39 +109,6 @@ EOF
   fi
   echo "Applied upstream secrets-store-csi-driver.yaml successfully. Waiting up to 60s for resources to be created and recognized by API server..."
   sleep 60 
-
-  echo "Waiting for CSI Secrets Store Controller Deployment ('${CSI_CONTROLLER_DEPLOYMENT_NAME}') to be created and ready..."
-  current_attempt=0
-  while true; do
-    current_attempt=$((current_attempt + 1))
-    if [[ ${current_attempt} -gt ${max_attempts_workload_check} ]]; then
-      echo "ERROR: Timeout waiting for Deployment '${CSI_CONTROLLER_DEPLOYMENT_NAME}' to become ready after ${max_attempts_workload_check} attempts."
-      echo "--- Checking if Deployment ${CSI_CONTROLLER_DEPLOYMENT_NAME} exists ---"
-      kubectl get deployment "${CSI_CONTROLLER_DEPLOYMENT_NAME}" -n kube-system -o yaml --ignore-not-found
-      echo "--- Describing Deployment ${CSI_CONTROLLER_DEPLOYMENT_NAME} (if it exists) ---"
-      kubectl describe deployment "${CSI_CONTROLLER_DEPLOYMENT_NAME}" -n kube-system 2>/dev/null || echo "Deployment ${CSI_CONTROLLER_DEPLOYMENT_NAME} not found, cannot describe."
-      echo "--- Getting Pods for ${CSI_CONTROLLER_DEPLOYMENT_NAME} ---"
-      kubectl get pods -n kube-system -l app=csi-secrets-store-controller -o wide 2>/dev/null || echo "No Pods found for app=csi-secrets-store-controller."
-      exit 1
-    fi
-
-    if ! kubectl get deployment "${CSI_CONTROLLER_DEPLOYMENT_NAME}" -n kube-system &> /dev/null; then
-      echo "Deployment '${CSI_CONTROLLER_DEPLOYMENT_NAME}' not found yet (attempt ${current_attempt}/${max_attempts_workload_check}). Waiting ${CSI_POLL_INTERVAL_SECONDS}s..."
-      sleep "${CSI_POLL_INTERVAL_SECONDS}"
-      continue
-    fi
-
-    READY_REPLICAS=$(kubectl get deployment "${CSI_CONTROLLER_DEPLOYMENT_NAME}" -n kube-system -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo 0)
-    DESIRED_REPLICAS=$(kubectl get deployment "${CSI_CONTROLLER_DEPLOYMENT_NAME}" -n kube-system -o jsonpath='{.spec.replicas}' 2>/dev/null || echo 1)
-    
-    if [[ "${READY_REPLICAS}" -ge 1 && "${READY_REPLICAS}" -eq "${DESIRED_REPLICAS}" ]]; then
-      echo "Deployment '${CSI_CONTROLLER_DEPLOYMENT_NAME}' is ready (Ready: ${READY_REPLICAS}/${DESIRED_REPLICAS})."
-      break
-    else
-      echo "Deployment '${CSI_CONTROLLER_DEPLOYMENT_NAME}' not ready yet (Ready: ${READY_REPLICAS}/${DESIRED_REPLICAS}) (attempt ${current_attempt}/${max_attempts_workload_check}). Waiting ${CSI_POLL_INTERVAL_SECONDS}s..."
-    fi
-    sleep "${CSI_POLL_INTERVAL_SECONDS}"
-  done
   
   echo "Applying custom CSIDriver object from datasets/csidriver.yaml to ensure Ephemeral mode..."
   if ! kubectl apply -f "${PROJECT_DIR}/datasets/csidriver.yaml"; then
