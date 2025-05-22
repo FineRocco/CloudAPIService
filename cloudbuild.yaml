@@ -141,6 +141,7 @@ steps:
       - '${_ARTIFACT_REGISTRY}/data_access:$SHORT_SHA'
       - '-t'
       - '${_ARTIFACT_REGISTRY}/data_access:latest'
+      - '-f'
       - './microservices/data_access/Dockerfile' # Path to Dockerfile from repo root
       - '.'  
 
@@ -152,6 +153,7 @@ steps:
       - '${_ARTIFACT_REGISTRY}/job_postings:$SHORT_SHA'
       - '-t'
       - '${_ARTIFACT_REGISTRY}/job_postings:latest'
+      - '-f'
       - './microservices/job_postings/Dockerfile' # Path to Dockerfile from repo root
       - '.'  
 
@@ -163,6 +165,7 @@ steps:
       - '${_ARTIFACT_REGISTRY}/job_reviews:$SHORT_SHA'
       - '-t'
       - '${_ARTIFACT_REGISTRY}/job_reviews:latest'
+      - '-f'
       - './microservices/job_reviews/Dockerfile' # Path to Dockerfile from repo root
       - '.'  # Path to Dockerfile context for job-reviews
 
@@ -174,6 +177,7 @@ steps:
       - '${_ARTIFACT_REGISTRY}/api_interface:$SHORT_SHA'
       - '-t'
       - '${_ARTIFACT_REGISTRY}/api_interface:latest'
+      - '-f'
       - './microservices/api_interface/Dockerfile' # Path to Dockerfile from repo root
       - '.'  # Path to Dockerfile context for api-interface
 
