@@ -1,14 +1,262 @@
 steps:
-- name: 'gcr.io/cloud-builders/docker'
-  args: [
-    'build',
-    '-t', 'europe-west1-docker.pkg.dev/projectcloud-451415/cloudapiservice/postgres-with-data:latest', # Your custom image name
-    '.', # Build context: the current directory containing Dockerfile, init.sql, and CSVs
-  ]
-- name: 'gcr.io/cloud-builders/docker'
-  args: [
-    'push',
-    'europe-west1-docker.pkg.dev/projectcloud-451415/cloudapiservice/postgres-with-data:latest', # Push your custom image
-  ]
+  # (Optional) Install dependencies or tools if not in a pre-built builder
+  # - name: 'gcr.io/cloud-builders/npm' # Example for Node.js
+  #   args: ['install']
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: ShowGCSMSecrets
+    entrypoint: 'bash'
+    args:
+      - -c
+      - |
+        echo "Demonstrating access to GCSM secrets:"
+        echo "DB Name Env Var: $$POSTGRES_DB_FROM_GCSM"
+        echo "DB User Env Var: $$POSTGRES_USER_FROM_GCSM"
+        echo "DB Password Env Var: $$POSTGRES_PASSWORD_FROM_GCSM"
+        # In a real scenario, you would use these variables, not just echo them.
+        # For example, if a build step needed to run database migrations:
+        # PGPASSWORD=$$POSTGRES_PASSWORD_FROM_GCSM psql -h some-host -U $$POSTGRES_USER_FROM_GCSM -d $$POSTGRES_DB_FROM_GCSM -f migration.sql
+    secretEnv:
+      - 'POSTGRES_DB_FROM_GCSM'
+      - 'POSTGRES_USER_FROM_GCSM'
+      - 'POSTGRES_PASSWORD_FROM_GCSM'
+
+  # Stage 1: Code Quality Checks (e.g., Linting for Python)
+  # (Run this for each microservice)
+  - name: 'python:3.13-slim' # Use an appropriate Python image
+    id: LintAPIInterface
+    entrypoint: 'bash'
+    args:
+      - -c
+      - |
+        echo "Linting api-interface service..."
+        if [ -d "api_interface" ]; then
+          cd api_interface
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pylint flake8
+          pylint . && flake8 .
+          cd ..
+        else
+          echo "Directory api_interface not found, skipping linting."
+        fi
+        echo "Linting for api-interface complete."
+
+  - name: 'python:3.13-slim' # Use an appropriate Python image
+    id: LintJobPostings
+    entrypoint: 'bash'
+    args:
+      - -c
+      - |
+        echo "Linting job-postings service..."
+        if [ -d "job_postings" ]; then
+          cd job_postings
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pylint flake8
+          pylint . && flake8 .
+          cd ..
+        else
+          echo "Directory job_postings not found, skipping linting."
+        fi
+        echo "Linting for job-postings complete."
+
+  - name: 'python:3.13-slim' # Use an appropriate Python image
+    id: LintJobReviews
+    entrypoint: 'bash'
+    args:
+      - -c
+      - |
+        echo "Linting job-reviews service..."
+        if [ -d "job_reviews" ]; then
+          cd job_reviews
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pylint flake8
+          pylint . && flake8 .
+          cd ..
+        else
+          echo "Directory job_reviews not found, skipping linting."
+        fi
+        echo "Linting for job-reviews complete."
+
+  - name: 'python:3.13-slim' # Use an appropriate Python image
+    id: LintDataAccess
+    entrypoint: 'bash'
+    args:
+      - -c
+      - |
+        echo "Linting data-access service..."
+        if [ -d "data_access" ]; then
+          cd data_access
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pylint flake8
+          pylint . && flake8 .
+          cd ..
+        else
+          echo "Directory data_access not found, skipping linting."
+        fi
+        echo "Linting for data-access complete."
+
+  # Stage 2: Download CSV Datasets from GCS
+  # This step runs before building the postgres-with-data image.
+  # Assumes your Dockerfile for postgres-with-data is in the 'datasets/' directory.
+  - name: 'gcr.io/cloud-builders/gsutil'
+    id: DownloadCSVs
+    args:
+      - '-m' # Multi-threaded/multi-processing copy
+      - 'cp'
+      - 'gs://project451415-datasets/employee_counts.csv'
+      - 'gs://project451415-datasets/job_postings.csv'
+      - 'gs://project451415-datasets/job_reviews.csv'
+      - './datasets/' # Download to the 'datasets' directory in the build workspace
+
+  # Stage 3: Build Docker Images (for each microservice and postgres-with-data)
+  # Ensure this runs AFTER DownloadCSVs for the postgres image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: BuildPostgresImage
+    args:
+      - 'build'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/postgres-with-data:$SHORT_SHA'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/postgres-with-data:latest'
+      - './datasets'  # Path to Dockerfile context for postgres-with-data (where CSVs are now)
+    waitFor: ['DownloadCSVs'] # Explicitly wait for CSVs to be downloaded
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: BuildDataAccessImage
+    args:
+      - 'build'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/data_access:$SHORT_SHA'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/data_access:latest'
+      - './datasets'  
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: BuildJobPostingsImage
+    args:
+      - 'build'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/job_postings:$SHORT_SHA'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/job_postings:latest'
+      - './datasets'  
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: BuildJobReviewsImage
+    args:
+      - 'build'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/job_reviews:$SHORT_SHA'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/job_reviews:latest'
+      - './datasets'  
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: BuildAPIInterfaceImage
+    args:
+      - 'build'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/api_interface:$SHORT_SHA'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/api_interface:latest'
+      - './api_interface'  # Path to Dockerfile context for api-interface
+
+  # Stage 5: Push Docker Images (for each microservice and postgres-with-data)
+  - name: 'gcr.io/cloud-builders/docker'
+    id: PushPostgresImage
+    args: ['push', '${_ARTIFACT_REGISTRY}/postgres-with-data:$SHORT_SHA']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '${_ARTIFACT_REGISTRY}/postgres-with-data:latest']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: PushDataAccessImage
+    args: ['push', '${_ARTIFACT_REGISTRY}/data_access:$SHORT_SHA']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '${_ARTIFACT_REGISTRY}/data_access:latest']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: PushJobPostingsImage
+    args: ['push', '${_ARTIFACT_REGISTRY}/job_postings:$SHORT_SHA']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '${_ARTIFACT_REGISTRY}/job_postings:latest']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: PushJobReviewsImage
+    args: ['push', '${_ARTIFACT_REGISTRY}/job_reviews:$SHORT_SHA']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '${_ARTIFACT_REGISTRY}/job_reviews:latest']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: PushAPIInterfaceImage
+    args: ['push', '${_ARTIFACT_REGISTRY}/api_interface:$SHORT_SHA']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '${_ARTIFACT_REGISTRY}/api_interface:latest']
+
+  # Stage 6: Deploy to GKE
+  # This stage would typically run only on pushes to the main branch.
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: GetGKECredentials
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud container clusters get-credentials "${_GKE_CLUSTER}" \
+          --zone "${_GCP_ZONE}" --project "${PROJECT_ID}"
+
+  - name: 'gcr.io/cloud-builders/bash'
+    id: DeployToGKE
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Deploying all services with image tag $SHORT_SHA..."
+        chmod +x ./deploy_microservices.sh
+        # Pass the SHORT_SHA as the first argument to your deployment script
+        ./deploy_microservices.sh "$SHORT_SHA"
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=${_GCP_ZONE}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
+
+  # (Optional) Stage 7: Smoke Tests
+  # - name: 'gcr.io/cloud-builders/curl'
+  #   id: SmokeTest
+  #   entrypoint: 'bash'
+  #   args:
+  #     - -c
+  #     - |
+  #       # Wait for Ingress IP and then curl an endpoint
+  #       # This requires getting the Ingress IP, which can be tricky in a build step
+  #       # Might be better done as a separate build trigger or manual step initially
+
+# Define substitutions that can be set by triggers or at build time
+substitutions:
+  _GCP_ZONE: 'europe-west1-b'
+  _GKE_CLUSTER: 'cluster-jobs'
+  _ARTIFACT_REGISTRY: 'europe-west1-docker.pkg.dev/projectcloud-451415/cloudapiservice'
+  _K8S_NAMESPACE: 'job-app'
+  # $SHORT_SHA is a built-in substitution for the short commit SHA
+  # $PROJECT_ID is also a built-in substitution
+
+# Specify images to be pushed to Artifact Registry upon successful build of these steps
 images:
-- 'europe-west1-docker.pkg.dev/projectcloud-451415/cloudapiservice/postgres-with-data:latest' # List the image to be pushed by Cloud Build
+  - '${_ARTIFACT_REGISTRY}/postgres-with-data:$SHORT_SHA'
+  - '${_ARTIFACT_REGISTRY}/postgres-with-data:latest'
+  - '${_ARTIFACT_REGISTRY}/api_interface:$SHORT_SHA'
+  - '${_ARTIFACT_REGISTRY}/api_interface:latest'
+  - '${_ARTIFACT_REGISTRY}/data_access:$SHORT_SHA'
+  - '${_ARTIFACT_REGISTRY}/data_access:latest'
+  - '${_ARTIFACT_REGISTRY}/job_postings:$SHORT_SHA'
+  - '${_ARTIFACT_REGISTRY}/job_postings:latest'
+  - '${_ARTIFACT_REGISTRY}/job_reviews:$SHORT_SHA'
+  - '${_ARTIFACT_REGISTRY}/job_reviews:latest'
+
+availableSecrets:
+  secretManager:
+  - versionName: projects/1008860931487/secrets/postgres-database/versions/2
+    env: 'POSTGRES_DB_FROM_GCSM' # Environment variable name in the build step
+  - versionName: projects/1008860931487/secrets/postgres-username/versions/2
+    env: 'POSTGRES_USER_FROM_GCSM'
+  - versionName: projects/1008860931487/secrets/postgres-password/versions/2
+    env: 'POSTGRES_PASSWORD_FROM_GCSM'
+
+# Optional: Set a timeout for the build
+timeout: 3600s # 1 hour
