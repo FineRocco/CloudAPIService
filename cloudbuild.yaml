@@ -137,11 +137,11 @@ steps:
     id: BuildDataAccessImage
     args:
       - 'build'
-      - '-t'
+      - '-t'  
       - '${_ARTIFACT_REGISTRY}/data_access:$SHORT_SHA'
       - '-t'
       - '${_ARTIFACT_REGISTRY}/data_access:latest'
-      - './datasets'  
+      - './microservices/data_access'  
 
   - name: 'gcr.io/cloud-builders/docker'
     id: BuildJobPostingsImage
@@ -151,7 +151,7 @@ steps:
       - '${_ARTIFACT_REGISTRY}/job_postings:$SHORT_SHA'
       - '-t'
       - '${_ARTIFACT_REGISTRY}/job_postings:latest'
-      - './datasets'  
+      - './microservices/job_postings'  
 
   - name: 'gcr.io/cloud-builders/docker'
     id: BuildJobReviewsImage
@@ -161,7 +161,7 @@ steps:
       - '${_ARTIFACT_REGISTRY}/job_reviews:$SHORT_SHA'
       - '-t'
       - '${_ARTIFACT_REGISTRY}/job_reviews:latest'
-      - './datasets'  
+      - './microservices/job_reviews'  # Path to Dockerfile context for job-reviews
 
   - name: 'gcr.io/cloud-builders/docker'
     id: BuildAPIInterfaceImage
@@ -171,7 +171,7 @@ steps:
       - '${_ARTIFACT_REGISTRY}/api_interface:$SHORT_SHA'
       - '-t'
       - '${_ARTIFACT_REGISTRY}/api_interface:latest'
-      - './api_interface'  # Path to Dockerfile context for api-interface
+      - './microservices/api_interface'  # Path to Dockerfile context for api-interface
 
   # Stage 5: Push Docker Images (for each microservice and postgres-with-data)
   - name: 'gcr.io/cloud-builders/docker'
