@@ -10,10 +10,8 @@ COPY microservices/data_access/protobuf/data-access.proto /app/protobuf/
 WORKDIR /app/job_reviews
 RUN mkdir -p ./protobuf
 RUN pip install --no-cache-dir -r requirements.txt
-RUN python -m grpc_tools.protoc -I ./protobuf --python_out=. \
-           --grpc_python_out=. ./protobuf/jobreviews.proto
-RUN python -m grpc_tools.protoc -I ./protobuf --python_out=. \
-           --grpc_python_out=. ./protobuf/data-access.proto
+RUN python -m grpc_tools.protoc -I../protobuf --python_out=. --grpc_python_out=. ../protobuf/jobreviews.proto
+RUN python -m grpc_tools.protoc -I../protobuf --python_out=. --grpc_python_out=. ../protobuf/data-access.proto
 
 EXPOSE 8084
 
