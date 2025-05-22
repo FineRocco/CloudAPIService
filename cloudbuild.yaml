@@ -94,6 +94,19 @@ steps:
         fi
         echo "Linting for data-access complete."
 
+  # Stage 2: Unit Testing (Placeholder - implement actual tests)
+  - name: 'python:3.13-slim'
+    id: TestAPIInterface
+    entrypoint: 'bash'
+    args:
+      - -c
+      - |
+        echo "Running unit tests for api-interface service (skipping actual tests)..."
+        cd microservices/api_interface
+        pip install pytest
+        pytest tests/
+    waitFor: ['LintAPIInterface', 'LintDataAccess', 'LintJobPostings', 'LintJobReviews']
+
   # Stage 2: Download CSV Datasets from GCS
   # This step runs before building the postgres-with-data image.
   # Assumes your Dockerfile for postgres-with-data is in the 'datasets/' directory.
