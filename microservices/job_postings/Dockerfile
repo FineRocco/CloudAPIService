@@ -4,9 +4,9 @@ WORKDIR /app
 
 COPY microservices/job_postings/requirements.txt /app/job_postings/
 COPY microservices/job_postings/job_postings.py /app/job_postings/
-COPY microservices/job_postings/protobuf /app/protobuf
-COPY microservices/job_reviews/protobuf /app/protobuf
-COPY microservices/data_access/protobuf /app/protobuf
+COPY microservices/job_postings/protobuf/jobpostings.proto /app/protobuf
+COPY microservices/job_reviews/protobuf/jobreviews.proto /app/protobuf
+COPY microservices/data_access/protobuf/data-access.proto /app/protobuf
 
 WORKDIR /app/job_postings
 RUN pip install --no-cache-dir -r requirements.txt
