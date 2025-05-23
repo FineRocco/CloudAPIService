@@ -332,24 +332,49 @@ echo "Namespace '${K8S_NAMESPACE}' labeled."
 echo "Applying SecretProviderClass for PostgreSQL..."
 kubectl apply -f "${PROJECT_DIR}/datasets/secret-provider-postgres.yaml" -n "${K8S_NAMESPACE}"
 
+# Enable command tracing for the problematic section
+echo "+++ Enabling command tracing for PostgreSQL YAML preparation +++"
+set -x
+
 echo "Navigating to dataset directory: ${PROJECT_DIR}/datasets/"
 cd "${PROJECT_DIR}/datasets/"
+echo "Current directory: $(pwd)"
+echo "Listing files in current directory:"
+ls -la
 
-# --- Prepare PostgreSQL YAMLs with unique PVC name and new image tag ---
-echo "Preparing PostgreSQL YAMLs with unique PVC name: ${PVC_NAME_WITH_SUFFIX} and image tag: ${NEW_IMAGE_TAG}"
+# --- Prepare PostgreSQL YAMLs with new image tag ---
+# PostgreSQL PVC name is now fixed (e.g., "postgres-pvc" as defined in postgres-pvc.yaml)
+echo "Preparing PostgreSQL Deployment YAML with image tag: [${NEW_IMAGE_TAG}]"
 POSTGRES_IMAGE_FULL="${ARTIFACT_REGISTRY_BASE}/postgres-with-data:${NEW_IMAGE_TAG}"
+POSTGRES_DEPLOYMENT_FILE_PATH="${PROJECT_DIR}/datasets/postgres-deployment.yaml"
 
-cp postgres-pvc.yaml "postgres-pvc-tmp.yaml"
-# Assuming original line is like '    claimName: postgres-pvc'
-sed -i "s/^\(\s*claimName:\s*\)postgres-pvc\$/\1${PVC_NAME_WITH_SUFFIX}/" "postgres-deployment-tmp.yaml"
+echo "Checking if ${POSTGRES_DEPLOYMENT_FILE_PATH} exists..."
+if [[ ! -f "${POSTGRES_DEPLOYMENT_FILE_PATH}" ]]; then
+  echo "ERROR: ${POSTGRES_DEPLOYMENT_FILE_PATH} not found!"
+  exit 1
+fi
 
-cp postgres-deployment.yaml "postgres-deployment-tmp.yaml"
-sed -i "s/claimName: postgres-pvc-\?\(\S*\)/claimName: ${PVC_NAME_WITH_SUFFIX}/g" "postgres-deployment-tmp.yaml"
-# Ensure the image line is specific enough to avoid unintended replacements
-sed -i "s|image: ${ARTIFACT_REGISTRY_BASE}/postgres-with-data:.*|image: ${POSTGRES_IMAGE_FULL}|g" "postgres-deployment-tmp.yaml"
-# Ensure KSA is set, assuming 'default' is the placeholder in the template if not already 'postgres-ksa'
-sed -i "s/serviceAccountName: default/serviceAccountName: ${KSA_NAME}/g" "postgres-deployment-tmp.yaml"
-sed -i "s/serviceAccountName: postgres-ksa/serviceAccountName: ${KSA_NAME}/g" "postgres-deployment-tmp.yaml" # If it was already set to postgres-ksa
+# Modify postgres-deployment.yaml in-place for image tag and KSA
+# Ensure this file is either a copy or it's acceptable to modify it in the workspace
+echo "Updating image in ${POSTGRES_DEPLOYMENT_FILE_PATH} to ${POSTGRES_IMAGE_FULL}"
+sed -i "s|image: ${ARTIFACT_REGISTRY_BASE}/postgres-with-data:.*|image: ${POSTGRES_IMAGE_FULL}|g" "${POSTGRES_DEPLOYMENT_FILE_PATH}"
+
+echo "Ensuring serviceAccountName is ${KSA_NAME} in ${POSTGRES_DEPLOYMENT_FILE_PATH}"
+if grep -q "serviceAccountName: default" "${POSTGRES_DEPLOYMENT_FILE_PATH}"; then
+  sed -i "s/serviceAccountName: default/serviceAccountName: ${KSA_NAME}/g" "${POSTGRES_DEPLOYMENT_FILE_PATH}"
+elif ! grep -q "serviceAccountName: ${KSA_NAME}" "${POSTGRES_DEPLOYMENT_FILE_PATH}"; then
+  if grep -q "serviceAccountName:" "${POSTGRES_DEPLOYMENT_FILE_PATH}"; then
+    sed -i "s/serviceAccountName: .*/serviceAccountName: ${KSA_NAME}/g" "${POSTGRES_DEPLOYMENT_FILE_PATH}"
+  else
+    # This case is harder to fix reliably with sed if the line is completely missing.
+    # Best to ensure postgres-deployment.yaml has a 'serviceAccountName: default' placeholder.
+    echo "Warning: serviceAccountName field not found in ${POSTGRES_DEPLOYMENT_FILE_PATH} and was not 'default'. Manual check might be needed if KSA is not correctly set."
+  fi
+fi
+echo "Final ${POSTGRES_DEPLOYMENT_FILE_PATH} content before apply:"
+cat "${POSTGRES_DEPLOYMENT_FILE_PATH}"
+
+set +x # Disable command tracing
 
 
 echo "Applying destination rule..."
