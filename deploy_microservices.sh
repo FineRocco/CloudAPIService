@@ -381,17 +381,13 @@ echo "Applying destination rule..."
 kubectl apply -f destination-rule.yaml -n "${K8S_NAMESPACE}"
 
 echo "Applying PostgreSQL PersistentVolumeClaim (PVC) with name ${PVC_NAME_WITH_SUFFIX}..."
-kubectl apply -f "postgres-pvc-tmp.yaml" -n "${K8S_NAMESPACE}"
+kubectl apply -f "postgres-pvc.yaml" -n "${K8S_NAMESPACE}"
 
 echo "Applying PostgreSQL service..."
 kubectl apply -f postgres-service.yaml -n "${K8S_NAMESPACE}"
 
 echo "Applying PostgreSQL deployment using PVC ${PVC_NAME_WITH_SUFFIX} and image ${POSTGRES_IMAGE_FULL}..."
-kubectl apply -f "postgres-deployment-tmp.yaml" -n "${K8S_NAMESPACE}"
-
-# Clean up temporary files
-rm "postgres-pvc-tmp.yaml"
-rm "postgres-deployment-tmp.yaml"
+kubectl apply -f "postgres-deployment.yaml" -n "${K8S_NAMESPACE}"
 
 
 echo "Waiting for Kubernetes Secret '${K8S_SECRET_NAME_FOR_POSTGRES}' to be created by CSI driver (max ${MAX_K8S_SECRET_WAIT_MINUTES} minutes)..."
