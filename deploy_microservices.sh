@@ -340,7 +340,8 @@ echo "Preparing PostgreSQL YAMLs with unique PVC name: ${PVC_NAME_WITH_SUFFIX} a
 POSTGRES_IMAGE_FULL="${ARTIFACT_REGISTRY_BASE}/postgres-with-data:${NEW_IMAGE_TAG}"
 
 cp postgres-pvc.yaml "postgres-pvc-tmp.yaml"
-sed -i "s/name: postgres-pvc-\?\(\S*\)/name: ${PVC_NAME_WITH_SUFFIX}/g" "postgres-pvc-tmp.yaml"
+# Assuming original line is like '    claimName: postgres-pvc'
+sed -i "s/^\(\s*claimName:\s*\)postgres-pvc\$/\1${PVC_NAME_WITH_SUFFIX}/" "postgres-deployment-tmp.yaml"
 
 cp postgres-deployment.yaml "postgres-deployment-tmp.yaml"
 sed -i "s/claimName: postgres-pvc-\?\(\S*\)/claimName: ${PVC_NAME_WITH_SUFFIX}/g" "postgres-deployment-tmp.yaml"
