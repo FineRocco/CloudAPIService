@@ -346,7 +346,7 @@ ls -la
 # PostgreSQL PVC name is now fixed (e.g., "postgres-pvc" as defined in postgres-pvc.yaml)
 echo "Preparing PostgreSQL Deployment YAML with image tag: [${NEW_IMAGE_TAG}]"
 POSTGRES_IMAGE_FULL="${ARTIFACT_REGISTRY_BASE}/postgres-with-data:${NEW_IMAGE_TAG}"
-POSTGRES_DEPLOYMENT_FILE_PATH="${PROJECT_DIR}/datasets/postgres-deployment.yaml"
+POSTGRES_DEPLOYMENT_FILE_PATH="postgres-deployment.yaml"
 
 echo "Checking if ${POSTGRES_DEPLOYMENT_FILE_PATH} exists..."
 if [[ ! -f "${POSTGRES_DEPLOYMENT_FILE_PATH}" ]]; then
