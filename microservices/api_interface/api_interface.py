@@ -324,13 +324,9 @@ def render_best_paying_companies():
         return jsonify({"error": f"Error fetching best paying companies: {str(e)}"}), 500
 
 
-@app.route('/jobs/delete/review-deletion', methods=['DELETE'])
-def render_delete_job_review():
 
-    review_id = request.args.get('review_id')
-
-    if not review_id:
-        return jsonify({"error": "Review id is required"}), 400
+@app.route('/reviews/<string:review_id>', methods=['DELETE'])
+def render_delete_job_review(review_id):
 
     try:
 
