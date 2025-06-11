@@ -197,7 +197,7 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
         try:
             conn = get_db_connection()
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-            cursor.execute("SELECT * FROM employee;")
+            cursor.execute("SELECT * FROM employee LIMIT 10;")
             rows = cursor.fetchall()
             
             company = [

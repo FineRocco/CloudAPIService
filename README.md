@@ -6,6 +6,9 @@ This project, developed for the Cloud Computing course (CC2425-Project), aims to
 
 This README outlines the project architecture, setup, deployment, and key features, focusing on the achievements of Phase 5: Cloud Deployment and plans for Phase 6.
 
+[Postman Collection](https://universal-satellite-952357.postman.co/workspace/My-Workspace~034a4811-b457-4b00-8931-4b72bda7fcbe/collection/42661225-2ba662b7-78bd-4011-b970-5a0ae8f0ca02?action=share&creator=42661225&active-environment=42661225-49bffba0-60a2-4232-9cb8-78307fb724b4)
+
+
 ## 2. Architecture Overview
 
 The application, JobMarketSearchAPI, follows a 3-Tier microservice architecture:
