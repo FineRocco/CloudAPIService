@@ -112,7 +112,8 @@ def render_AddJob():
         },
         "job_response": {
             "message": job_response.message,
-            "status": job_response.status
+            "status": job_response.status,
+            "job_id": job_response.job_id
         }
     }), job_response.status
     

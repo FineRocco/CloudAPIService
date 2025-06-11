@@ -89,6 +89,7 @@ message JobAddRequest {
 message JobAddResponse {
     string message = 1;
     int32 status = 2;
+    string job_id = 3;
 }
 
 

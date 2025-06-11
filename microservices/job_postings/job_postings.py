@@ -199,7 +199,8 @@ class JobPostingService(jobpostings_pb2_grpc.JobPostingServiceServicer):
         if job_response.status == 200:
             return JobAddResponse(
                 message="Job added successfully",
-                status=201  # Success code (201 - Created)
+                status=201,
+                job_id=job_response.job_id
             )
         else:
             return JobAddResponse(
