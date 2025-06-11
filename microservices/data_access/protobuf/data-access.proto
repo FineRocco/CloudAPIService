@@ -154,6 +154,7 @@ message CreateReviewResponse {
 message PostJobResponse {
   string message = 1;
   int32 status = 2;
+  string job_id = 3;
 }
 
 message PostJobRequest {

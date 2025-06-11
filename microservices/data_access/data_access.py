@@ -49,7 +49,7 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
         try:
             conn = get_db_connection()
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-            cursor.execute("SELECT * FROM jobs WHERE title LIKE %s", (f"%{request.title}%",))
+            cursor.execute("SELECT * FROM jobs WHERE title LIKE %s LIMIT 10", (f"%{request.title}%",))
             rows = cursor.fetchall()
 
             # Transform rows into Job objects.
@@ -101,7 +101,7 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
         try:
             conn = get_db_connection()
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-            cursor.execute("SELECT * FROM jobs WHERE title LIKE %s AND location LIKE %s", (f"%{request.title}%", f"%{request.city}%",))
+            cursor.execute("SELECT * FROM jobs WHERE title LIKE %s AND location LIKE %s LIMIT 10", (f"%{request.title}%", f"%{request.city}%",))
             rows = cursor.fetchall()
 
             job_postings = [
@@ -158,7 +158,7 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
             # Execute the SQL query.
             query = (
                 "SELECT company, title, description, location, company_id, med_salary "
-                "FROM jobs WHERE company_id = %s LIMIT %s OFFSET %s"
+                "FROM jobs WHERE company_id = %s LIMIT 10 OFFSET %s"
             )
             params = (request.company_id, request.limit, request.offset)
             cursor.execute(query, params)
@@ -197,7 +197,7 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
         try:
             conn = get_db_connection()
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-            cursor.execute("SELECT * FROM employee;")
+            cursor.execute("SELECT * FROM employee LIMIT 10;")
             rows = cursor.fetchall()
             
             company = [
@@ -466,7 +466,8 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
             # Retornar a resposta de sucesso
             return data_access_pb2.PostJobResponse(
                 message="Job successfully inserted",
-                status=200
+                status=200,
+                job_id=job_id
             )
 
         except Exception as e:
