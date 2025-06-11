@@ -160,7 +160,7 @@ class DataAccessService(data_access_pb2_grpc.DataAccessServiceServicer):
                 "SELECT company, title, description, location, company_id, med_salary "
                 "FROM jobs WHERE company_id = %s LIMIT 10 OFFSET %s"
             )
-            params = (request.company_id, request.limit, request.offset)
+            params = (request.company_id, request.offset)
             cursor.execute(query, params)
             
             # Fetch the results.
