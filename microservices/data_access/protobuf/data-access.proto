@@ -8,26 +8,9 @@ message Job {
   string company = 2;
   string title = 3;
   string description = 4;
-  double max_salary = 5;         // Using double for NUMERIC fields.
-  string pay_period = 6;
   string location = 7;
-  float company_id = 8;          // Matches the table's FLOAT type.
   float views = 9;
-  double med_salary = 10;
-  double min_salary = 11;
-  string formatted_work_type = 12;
-  bool remote_allowed = 13;
-  string job_posting_url = 14;
-  string aplication_url = 15;
-  string application_type = 16;
-  string formatted_experience_level = 17;
-  string skills_desc = 18;
-  string posting_domain = 19;
-  bool sponsored = 20;
-  string work_type = 21;
-  string currency = 22;
   double normalized_salary = 23;
-  float zip_code = 24;           // Although zip codes are usually strings, this matches your table.
 }
 
 message JobForLargestCompany {

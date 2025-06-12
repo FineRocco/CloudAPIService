@@ -222,26 +222,25 @@ def render_jobsForLargestCompanies():
         "jobs": jobs
     }),200
 
-@app.route("/jobs/put/review-update", methods=["PUT"])
-def update_review():
-    # If it's a GET request, just render the empty form
-    if request.method == "GET":
-        return render_template("updateReview.html", update_response=None)
+@app.route("/reviews/<string:review_id>", methods=["PUT"])
+def update_review(review_id):
     
     try:
-        # Extract and validate input from the request.
-        review_id = request.form.get("id") or (request.json and request.json.get("id"))
-        rating = request.form.get("rating") or (request.json and request.json.get("rating"))
-        headline = request.form.get("headline") or (request.json and request.json.get("headline"))
-        current_status = request.form.get("current_status") or (request.json and request.json.get("current_status"))
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Request body missing or invalid JSON"}), 400
+
+        rating = data.get("rating")
+        headline = data.get("headline")
+        current_status = data.get("current_status")
         
         # Validate required fields.
-        if not review_id or not rating or not headline or not current_status:
-            return jsonify({"error": "Missing required fields"}), 400
+        if not rating or not headline or not current_status:
+            return jsonify({"error": "Missing required fields (rating, headline, current_status) in JSON body"}), 400
         
-        # Build the gRPC request message. (Ensure these field names match your proto definitions.)
+        # Build the gRPC request message. 
         update_request = UpdateJobReviewRequest(
-            id=int(review_id),
+            id=int(review_id), 
             rating=float(rating),
             headline=headline,
             current_status=current_status
